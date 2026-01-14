@@ -1,9 +1,8 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Plus, Search, Filter, Download, Upload, LayoutGrid, List, Users } from "lucide-react";
+import { Plus, Search, Filter, Download, Upload, LayoutGrid, List, Users, Columns } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   Select,
@@ -30,6 +29,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LeadCard } from "@/components/lead-card";
+import { LeadsKanban } from "@/components/leads-kanban";
 import { EmptyState } from "@/components/empty-state";
 import { LeadCardSkeleton } from "@/components/loading-skeleton";
 import { useI18n } from "@/lib/i18n";
@@ -56,9 +56,9 @@ const leadFormSchema = z.object({
 type LeadFormValues = z.infer<typeof leadFormSchema>;
 
 export default function Leads() {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const { toast } = useToast();
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [viewMode, setViewMode] = useState<"kanban" | "grid" | "list">("kanban");
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [sourceFilter, setSourceFilter] = useState<string>("all");
@@ -91,10 +91,10 @@ export default function Leads() {
       queryClient.invalidateQueries({ queryKey: ["/api/activities"] });
       setDialogOpen(false);
       form.reset();
-      toast({ title: "Lead created successfully" });
+      toast({ title: language === "ar" ? "تم إنشاء العميل بنجاح" : "Lead created successfully" });
     },
     onError: () => {
-      toast({ title: "Failed to create lead", variant: "destructive" });
+      toast({ title: language === "ar" ? "فشل إنشاء العميل" : "Failed to create lead", variant: "destructive" });
     },
   });
 
@@ -104,10 +104,19 @@ export default function Leads() {
       queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/leads-by-source"] });
-      toast({ title: "Lead deleted successfully" });
+      toast({ title: language === "ar" ? "تم حذف العميل" : "Lead deleted successfully" });
     },
     onError: () => {
-      toast({ title: "Failed to delete lead", variant: "destructive" });
+      toast({ title: language === "ar" ? "فشل حذف العميل" : "Failed to delete lead", variant: "destructive" });
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, updates }: { id: string; updates: Partial<Lead> }) => 
+      apiRequest("PATCH", `/api/leads/${id}`, updates),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/activities"] });
     },
   });
 
@@ -136,7 +145,7 @@ export default function Leads() {
         <div>
           <h1 className="text-3xl font-bold font-heading">{t("leads.title")}</h1>
           <p className="text-muted-foreground mt-1">
-            {leads?.length || 0} total leads
+            {leads?.length || 0} {language === "ar" ? "عميل" : "total leads"}
           </p>
         </div>
 
@@ -161,7 +170,7 @@ export default function Leads() {
                       <FormLabel>{t("leads.name")}</FormLabel>
                       <FormControl>
                         <Input 
-                          placeholder="John Doe" 
+                          placeholder={language === "ar" ? "اسم العميل" : "John Doe"}
                           {...field} 
                           data-testid="input-lead-name"
                         />
@@ -179,7 +188,8 @@ export default function Leads() {
                       <FormLabel>{t("leads.phone")}</FormLabel>
                       <FormControl>
                         <Input 
-                          placeholder="+971 50 123 4567" 
+                          placeholder="+966 50 123 4567" 
+                          dir="ltr"
                           {...field} 
                           data-testid="input-lead-phone"
                         />
@@ -198,7 +208,8 @@ export default function Leads() {
                       <FormControl>
                         <Input 
                           type="email" 
-                          placeholder="john@example.com" 
+                          placeholder="client@example.com" 
+                          dir="ltr"
                           {...field} 
                           data-testid="input-lead-email"
                         />
@@ -265,7 +276,7 @@ export default function Leads() {
                   name="budget"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Budget (AED)</FormLabel>
+                      <FormLabel>{t("leads.budget")} (SAR)</FormLabel>
                       <FormControl>
                         <Input 
                           placeholder="500,000 - 1,000,000" 
@@ -280,13 +291,31 @@ export default function Leads() {
 
                 <FormField
                   control={form.control}
+                  name="propertyInterest"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t("leads.propertyInterest")}</FormLabel>
+                      <FormControl>
+                        <Input 
+                          placeholder={language === "ar" ? "فيلا، شقة..." : "Villa, Apartment..."}
+                          {...field} 
+                          data-testid="input-lead-property-interest"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
                   name="notes"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Notes</FormLabel>
+                      <FormLabel>{language === "ar" ? "ملاحظات" : "Notes"}</FormLabel>
                       <FormControl>
                         <Input 
-                          placeholder="Additional notes..." 
+                          placeholder={language === "ar" ? "ملاحظات إضافية..." : "Additional notes..."}
                           {...field} 
                           data-testid="input-lead-notes"
                         />
@@ -318,25 +347,27 @@ export default function Leads() {
         </Dialog>
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        <Badge 
-          variant={statusFilter === "all" ? "default" : "outline"}
-          className="cursor-pointer"
-          onClick={() => setStatusFilter("all")}
-        >
-          {t("common.all")} ({leads?.length || 0})
-        </Badge>
-        {LeadStatuses.map((status) => (
+      {viewMode !== "kanban" && (
+        <div className="flex flex-wrap gap-2">
           <Badge 
-            key={status}
-            variant={statusFilter === status ? "default" : "outline"}
+            variant={statusFilter === "all" ? "default" : "outline"}
             className="cursor-pointer"
-            onClick={() => setStatusFilter(status)}
+            onClick={() => setStatusFilter("all")}
           >
-            {t(`status.${status}`)} ({statusCounts[status] || 0})
+            {t("common.all")} ({leads?.length || 0})
           </Badge>
-        ))}
-      </div>
+          {LeadStatuses.map((status) => (
+            <Badge 
+              key={status}
+              variant={statusFilter === status ? "default" : "outline"}
+              className="cursor-pointer"
+              onClick={() => setStatusFilter(status)}
+            >
+              {t(`status.${status}`)} ({statusCounts[status] || 0})
+            </Badge>
+          ))}
+        </div>
+      )}
 
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1">
@@ -357,7 +388,7 @@ export default function Leads() {
             <SelectValue placeholder="Source" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">{t("common.all")} Sources</SelectItem>
+            <SelectItem value="all">{t("common.all")} {language === "ar" ? "المصادر" : "Sources"}</SelectItem>
             {LeadSources.map((source) => (
               <SelectItem key={source} value={source}>
                 {t(`source.${source}`)}
@@ -366,8 +397,11 @@ export default function Leads() {
           </SelectContent>
         </Select>
 
-        <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as "grid" | "list")}>
+        <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as "kanban" | "grid" | "list")}>
           <TabsList>
+            <TabsTrigger value="kanban" data-testid="button-view-kanban">
+              <Columns className="h-4 w-4" />
+            </TabsTrigger>
             <TabsTrigger value="grid" data-testid="button-view-grid">
               <LayoutGrid className="h-4 w-4" />
             </TabsTrigger>
@@ -378,33 +412,28 @@ export default function Leads() {
         </Tabs>
       </div>
 
-      <ScrollArea className="h-[calc(100vh-320px)]">
-        {isLoading ? (
-          <div className={cn(
-            "grid gap-4",
-            viewMode === "grid" 
-              ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" 
-              : "grid-cols-1"
-          )}>
-            {Array.from({ length: 8 }).map((_, i) => (
-              <LeadCardSkeleton key={i} />
+      {viewMode === "kanban" ? (
+        isLoading ? (
+          <div className="flex gap-4 overflow-x-auto pb-4">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="flex flex-col min-w-[280px] max-w-[320px] rounded-lg border bg-muted/30">
+                <div className="p-3 border-b">
+                  <div className="h-5 w-24 bg-muted rounded animate-pulse" />
+                </div>
+                <div className="p-2 space-y-2">
+                  {Array.from({ length: 2 }).map((_, j) => (
+                    <div key={j} className="h-24 bg-muted rounded animate-pulse" />
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
         ) : filteredLeads && filteredLeads.length > 0 ? (
-          <div className={cn(
-            "grid gap-4",
-            viewMode === "grid" 
-              ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" 
-              : "grid-cols-1"
-          )}>
-            {filteredLeads.map((lead) => (
-              <LeadCard 
-                key={lead.id} 
-                lead={lead} 
-                onDelete={(lead) => deleteMutation.mutate(lead.id)}
-              />
-            ))}
-          </div>
+          <LeadsKanban 
+            leads={filteredLeads}
+            onLeadUpdate={(id, updates) => updateMutation.mutate({ id, updates })}
+            onLeadDelete={(lead) => deleteMutation.mutate(lead.id)}
+          />
         ) : (
           <EmptyState
             icon={Users}
@@ -413,8 +442,46 @@ export default function Leads() {
             actionLabel={t("leads.new")}
             onAction={() => setDialogOpen(true)}
           />
-        )}
-      </ScrollArea>
+        )
+      ) : (
+        <ScrollArea className="h-[calc(100vh-320px)]">
+          {isLoading ? (
+            <div className={cn(
+              "grid gap-4",
+              viewMode === "grid" 
+                ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" 
+                : "grid-cols-1"
+            )}>
+              {Array.from({ length: 8 }).map((_, i) => (
+                <LeadCardSkeleton key={i} />
+              ))}
+            </div>
+          ) : filteredLeads && filteredLeads.length > 0 ? (
+            <div className={cn(
+              "grid gap-4",
+              viewMode === "grid" 
+                ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" 
+                : "grid-cols-1"
+            )}>
+              {filteredLeads.map((lead) => (
+                <LeadCard 
+                  key={lead.id} 
+                  lead={lead} 
+                  onDelete={(lead) => deleteMutation.mutate(lead.id)}
+                />
+              ))}
+            </div>
+          ) : (
+            <EmptyState
+              icon={Users}
+              title={t("leads.noLeads")}
+              description={t("leads.addFirst")}
+              actionLabel={t("leads.new")}
+              onAction={() => setDialogOpen(true)}
+            />
+          )}
+        </ScrollArea>
+      )}
     </div>
   );
 }
