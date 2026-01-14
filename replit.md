@@ -1,8 +1,8 @@
-# PropFlow CRM - Real Estate Marketing Platform
+# عقارك 1 - Real Estate Marketing Platform
 
 ## Overview
 
-PropFlow CRM is a real estate marketing and customer relationship management platform with integrated WhatsApp messaging capabilities. The application is designed for real estate companies in the Middle East, supporting both English and Arabic languages with RTL layout support. It provides lead management, property listings, deal pipeline tracking, WhatsApp conversation management, and analytics dashboards.
+عقارك 1 (Aqarak 1) is a real estate marketing and customer relationship management platform with integrated WhatsApp messaging capabilities. The application is designed for real estate companies in the Middle East, supporting both English and Arabic languages with RTL layout support. It provides lead management, property listings, deal pipeline tracking, WhatsApp conversation management, and analytics dashboards.
 
 ## User Preferences
 

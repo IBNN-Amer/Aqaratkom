@@ -55,11 +55,11 @@ export function AppSidebar() {
       <SidebarHeader className="p-4">
         <Link href="/" className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground font-heading font-bold text-lg">
-            P
+            ع
           </div>
           <div className="flex flex-col">
-            <span className="font-heading font-semibold text-lg text-sidebar-foreground">PropFlow</span>
-            <span className="text-xs text-muted-foreground">Real Estate CRM</span>
+            <span className="font-heading font-semibold text-lg text-sidebar-foreground">عقارك 1</span>
+            <span className="text-xs text-muted-foreground">منصة التسويق العقاري</span>
           </div>
         </Link>
       </SidebarHeader>
