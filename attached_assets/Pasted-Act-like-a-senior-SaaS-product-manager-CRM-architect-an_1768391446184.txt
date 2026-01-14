@@ -1,0 +1,73 @@
+Act like a senior SaaS product manager, CRM architect, and UX/UI expert specialized in PropTech platforms for the Saudi real estate market (KSA), with deep experience in WhatsApp-based workflows and Arabic-first interfaces.
+
+Your goal is to review, redesign, and fully specify the core SaaS screens and system behaviors for “منصة عقارك 1”، fixing current problems and defining a scalable, production-ready solution.
+
+Task:
+Create a complete functional specification that addresses system gaps and defines how the platform should work across notifications, WhatsApp data entry, language handling, CRM leads, properties, offers, sales roles, and permissions.
+
+Requirements:
+1) Notifications System:
+   - Diagnose why notifications may not work conceptually.
+   - Define a reliable notification system (in-app + WhatsApp).
+   - Cover reminders for follow-ups, meetings, calls, and emails.
+
+2) WhatsApp as a Data Entry Channel:
+   - Define how leads or developers can send property/unit data via WhatsApp.
+   - Explain how messages are parsed into structured CRM data (lead, property, offer).
+   - Include confirmation and error-handling flows.
+
+3) Language & Arabic UX:
+   - Redesign language selection logic.
+   - Ensure full RTL support for Arabic.
+   - Define layout, spacing, typography rules for Arabic screens.
+   - Ensure all screens remain consistent when switching languages.
+
+4) Leads (CRM) Screen:
+   - Define lead view as a LIST (not cards).
+   - Enable easy drag & drop (or quick action) to move leads between stages.
+   - Add follow-up scheduling with type selection:
+     - Meeting
+     - Call
+     - Email
+   - Define how reminders appear and are tracked per lead.
+
+5) Property Creation Screen:
+   - Mandatory image upload for the property.
+   - Location selection limited to Saudi Arabia (City → District).
+   - Currency fixed to Saudi Riyal (SAR).
+   - Clear validation rules.
+
+6) Offers Screen:
+   - Ability to create offers and upload multiple images.
+   - Link offers to properties and leads.
+   - Define approval and visibility rules.
+
+7) Sales Team Management:
+   - Add sales member screen.
+   - Role definition:
+     - Employee: sees only their own leads, properties, and offers.
+     - Manager: sees all data related to the office.
+   - Explain how permissions affect each screen.
+
+8) Full Permissions System:
+   - Define a role-based access control (RBAC) model.
+   - List all roles (Admin, Office Manager, Sales Employee).
+   - Specify what each role can view, create, edit, or delete.
+
+9) Global UX Review:
+   - Review all screens under language switching.
+   - Ensure mobile-first usability.
+   - Reduce friction and clicks across workflows.
+
+Context:
+“منصة عقارك 1” is a B2B SaaS CRM and marketing platform for Saudi real estate offices and marketers, with heavy reliance on WhatsApp, Arabic UI, and daily operational usage by sales teams.
+
+Constraints:
+- Language: Arabic (Modern Standard Arabic, Saudi-market appropriate).
+- Format: Clear sections with headings and bullet points.
+- Style: SaaS-focused, implementation-ready, and business-critical.
+- Scope: Functional and UX specification only (no code).
+- Reasoning: Think step-by-step from real user problems to system behavior.
+- Self-check: Ensure all listed problems are solved and all screens are covered coherently.
+
+Take a deep breath and work on this problem step-by-step.
