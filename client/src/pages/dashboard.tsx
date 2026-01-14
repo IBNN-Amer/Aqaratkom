@@ -98,7 +98,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6 animate-in fade-in duration-300">
       <div>
         <h1 className="text-3xl font-bold font-heading">{t("dashboard.title")}</h1>
         <p className="text-muted-foreground mt-1">{t("dashboard.welcome")}</p>
@@ -159,10 +159,10 @@ export default function Dashboard() {
         )}
       </div>
 
-      <div className="grid gap-6 grid-cols-1 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
+      <div className="grid gap-4 grid-cols-1 lg:grid-cols-3">
+        <Card className="lg:col-span-2 border-0 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between gap-4 space-y-0 pb-2">
-            <CardTitle className="text-lg font-semibold font-heading">
+            <CardTitle className="text-base font-semibold font-heading">
               {t("dashboard.dealsPipeline")}
             </CardTitle>
           </CardHeader>
@@ -207,9 +207,9 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="border-0 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between gap-4 space-y-0 pb-2">
-            <CardTitle className="text-lg font-semibold font-heading">
+            <CardTitle className="text-base font-semibold font-heading">
               {t("dashboard.leadsBySource")}
             </CardTitle>
           </CardHeader>
@@ -263,10 +263,10 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      <div className="grid gap-6 grid-cols-1 lg:grid-cols-3">
-        <Card>
+      <div className="grid gap-4 grid-cols-1 lg:grid-cols-3">
+        <Card className="border-0 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between gap-4 space-y-0 pb-2">
-            <CardTitle className="text-lg font-semibold font-heading">
+            <CardTitle className="text-base font-semibold font-heading">
               {t("dashboard.recentActivity")}
             </CardTitle>
           </CardHeader>
@@ -294,9 +294,9 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card className="lg:col-span-2">
+        <Card className="lg:col-span-2 border-0 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between gap-4 space-y-0 pb-2">
-            <CardTitle className="text-lg font-semibold font-heading">
+            <CardTitle className="text-base font-semibold font-heading">
               {t("dashboard.topProperties")}
             </CardTitle>
           </CardHeader>

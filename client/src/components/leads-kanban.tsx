@@ -92,16 +92,16 @@ function KanbanCard({
     <Card
       draggable
       onDragStart={(e) => onDragStart(e, lead)}
-      className="p-3 cursor-grab active:cursor-grabbing hover-elevate transition-all group"
+      className="p-3 cursor-grab active:cursor-grabbing border-0 shadow-sm hover:shadow-md transition-shadow duration-200 group"
       data-testid={`kanban-card-${lead.id}`}
     >
       <div className="flex items-start gap-2">
-        <GripVertical className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 mt-1" />
+        <GripVertical className="h-4 w-4 text-muted-foreground/50 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 mt-0.5" />
         <div className="flex-1 min-w-0 space-y-2">
           <div className="flex items-center justify-between gap-2">
-            <span className="font-medium truncate">{lead.name}</span>
+            <span className="font-semibold text-sm truncate">{lead.name}</span>
             {lead.score !== null && lead.score !== undefined && (
-              <Badge variant="secondary" className="text-xs flex-shrink-0">
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0 font-semibold flex-shrink-0">
                 {lead.score}
               </Badge>
             )}

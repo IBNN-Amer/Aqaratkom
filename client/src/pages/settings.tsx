@@ -472,7 +472,7 @@ export default function Settings() {
   };
 
   return (
-    <div className="p-6 space-y-6 max-w-4xl">
+    <div className="p-6 space-y-5 max-w-4xl animate-in fade-in duration-300">
       <div>
         <h1 className="text-3xl font-bold font-heading">{t("nav.settings")}</h1>
         <p className="text-muted-foreground mt-1">

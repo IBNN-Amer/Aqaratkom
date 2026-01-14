@@ -50,7 +50,7 @@ export function Header() {
   });
 
   const markReadMutation = useMutation({
-    mutationFn: (id: string) => apiRequest(`/api/notifications/${id}/read`, { method: "PATCH" }),
+    mutationFn: (id: string) => apiRequest("PATCH", `/api/notifications/${id}/read`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
       queryClient.invalidateQueries({ queryKey: ["/api/notifications/unread-count"] });
@@ -58,10 +58,7 @@ export function Header() {
   });
 
   const markAllReadMutation = useMutation({
-    mutationFn: () => apiRequest("/api/notifications/mark-all-read", { 
-      method: "POST",
-      body: JSON.stringify({ userId: "user-1" }),
-    }),
+    mutationFn: () => apiRequest("POST", "/api/notifications/mark-all-read", { userId: "user-1" }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/notifications"] });
       queryClient.invalidateQueries({ queryKey: ["/api/notifications/unread-count"] });
@@ -72,15 +69,15 @@ export function Header() {
   const recentNotifications = notifications.slice(0, 5);
 
   return (
-    <header className="flex h-16 shrink-0 items-center justify-between gap-4 border-b bg-background px-4">
-      <div className="flex items-center gap-4">
+    <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b bg-card/80 backdrop-blur-sm px-4 sticky top-0 z-40">
+      <div className="flex items-center gap-3">
         <SidebarTrigger data-testid="button-sidebar-toggle" />
         <div className="relative hidden md:block">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Search className="absolute ltr:left-3 rtl:right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             type="search"
             placeholder={t("common.search")}
-            className="w-64 pl-9"
+            className="w-72 ltr:pl-9 rtl:pr-9 h-9 bg-muted/50 border-transparent focus:border-primary/30 focus:bg-background transition-colors"
             data-testid="input-global-search"
           />
         </div>

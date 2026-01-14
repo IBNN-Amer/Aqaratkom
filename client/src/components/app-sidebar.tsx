@@ -68,14 +68,14 @@ export function AppSidebar() {
 
   return (
     <Sidebar side="right">
-      <SidebarHeader className="p-4">
-        <Link href="/" className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground font-heading font-bold text-lg">
+      <SidebarHeader className="p-4 border-b border-sidebar-border/50">
+        <Link href="/" className="flex items-center gap-3 group">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground font-heading font-bold text-lg shadow-md group-hover:shadow-lg transition-shadow">
             ع
           </div>
           <div className="flex flex-col">
-            <span className="font-heading font-semibold text-lg text-sidebar-foreground">عقارك 1</span>
-            <span className="text-xs text-muted-foreground">منصة التسويق العقاري</span>
+            <span className="font-heading font-bold text-lg text-sidebar-foreground">عقارك 1</span>
+            <span className="text-[11px] text-sidebar-foreground/60">منصة التسويق العقاري</span>
           </div>
         </Link>
       </SidebarHeader>

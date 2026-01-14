@@ -66,16 +66,16 @@ export function ActivityItem({ activity }: ActivityItemProps) {
 
   return (
     <div 
-      className="flex items-start gap-3 py-3"
+      className="flex items-start gap-3 py-3 hover:bg-muted/30 -mx-2 px-2 rounded-lg transition-colors duration-150"
       data-testid={`activity-${activity.id}`}
     >
-      <div className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-full", colorClass)}>
-        <Icon className="h-4 w-4" />
+      <div className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-lg", colorClass)}>
+        <Icon className="h-3.5 w-3.5" />
       </div>
       
       <div className="flex-1 min-w-0">
-        <p className="text-sm text-foreground">{activity.description}</p>
-        <span className="text-xs text-muted-foreground">
+        <p className="text-sm text-foreground leading-snug">{activity.description}</p>
+        <span className="text-xs text-muted-foreground/70 font-medium">
           {formatTime(activity.createdAt)}
         </span>
       </div>
