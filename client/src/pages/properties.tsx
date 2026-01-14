@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Plus, Search, Filter, Building2, LayoutGrid, List } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -58,13 +58,14 @@ const propertyFormSchema = z.object({
 type PropertyFormValues = z.infer<typeof propertyFormSchema>;
 
 export default function Properties() {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const { toast } = useToast();
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingProperty, setEditingProperty] = useState<Property | null>(null);
 
   const { data: properties, isLoading } = useQuery<Property[]>({
     queryKey: ["/api/properties"],
@@ -87,6 +88,38 @@ export default function Properties() {
     },
   });
 
+  useEffect(() => {
+    if (editingProperty) {
+      form.reset({
+        title: editingProperty.title,
+        titleAr: editingProperty.titleAr || "",
+        description: editingProperty.description || "",
+        type: editingProperty.type as typeof PropertyTypes[number],
+        status: editingProperty.status as typeof PropertyStatuses[number],
+        price: editingProperty.price?.toString() || "",
+        area: editingProperty.area?.toString() || "",
+        bedrooms: editingProperty.bedrooms?.toString() || "",
+        bathrooms: editingProperty.bathrooms?.toString() || "",
+        location: editingProperty.location,
+        locationAr: editingProperty.locationAr || "",
+      });
+    } else {
+      form.reset({
+        title: "",
+        titleAr: "",
+        description: "",
+        type: "apartment",
+        status: "available",
+        price: "",
+        area: "",
+        bedrooms: "",
+        bathrooms: "",
+        location: "",
+        locationAr: "",
+      });
+    }
+  }, [editingProperty, form]);
+
   const createMutation = useMutation({
     mutationFn: (data: PropertyFormValues) => {
       const payload = {
@@ -103,10 +136,44 @@ export default function Properties() {
       queryClient.invalidateQueries({ queryKey: ["/api/activities"] });
       setDialogOpen(false);
       form.reset();
-      toast({ title: "Property created successfully" });
+      toast({ 
+        title: language === "ar" ? "تم إنشاء العقار بنجاح" : "Property created successfully" 
+      });
     },
     onError: () => {
-      toast({ title: "Failed to create property", variant: "destructive" });
+      toast({ 
+        title: language === "ar" ? "فشل في إنشاء العقار" : "Failed to create property", 
+        variant: "destructive" 
+      });
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: PropertyFormValues }) => {
+      const payload = {
+        ...data,
+        price: data.price,
+        area: data.area ? parseInt(data.area) : null,
+        bedrooms: data.bedrooms ? parseInt(data.bedrooms) : null,
+        bathrooms: data.bathrooms ? parseInt(data.bathrooms) : null,
+      };
+      return apiRequest("PATCH", `/api/properties/${id}`, payload);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/properties"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/activities"] });
+      setDialogOpen(false);
+      setEditingProperty(null);
+      form.reset();
+      toast({ 
+        title: language === "ar" ? "تم تحديث العقار بنجاح" : "Property updated successfully" 
+      });
+    },
+    onError: () => {
+      toast({ 
+        title: language === "ar" ? "فشل في تحديث العقار" : "Failed to update property", 
+        variant: "destructive" 
+      });
     },
   });
 
@@ -114,15 +181,41 @@ export default function Properties() {
     mutationFn: (id: string) => apiRequest("DELETE", `/api/properties/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/properties"] });
-      toast({ title: "Property deleted successfully" });
+      toast({ 
+        title: language === "ar" ? "تم حذف العقار بنجاح" : "Property deleted successfully" 
+      });
     },
     onError: () => {
-      toast({ title: "Failed to delete property", variant: "destructive" });
+      toast({ 
+        title: language === "ar" ? "فشل في حذف العقار" : "Failed to delete property", 
+        variant: "destructive" 
+      });
     },
   });
 
   const onSubmit = (data: PropertyFormValues) => {
-    createMutation.mutate(data);
+    if (editingProperty) {
+      updateMutation.mutate({ id: editingProperty.id, data });
+    } else {
+      createMutation.mutate(data);
+    }
+  };
+
+  const handleEdit = (property: Property) => {
+    setEditingProperty(property);
+    setDialogOpen(true);
+  };
+
+  const handleCloseDialog = () => {
+    setDialogOpen(false);
+    setEditingProperty(null);
+    form.reset();
+  };
+
+  const handleOpenNewProperty = () => {
+    setEditingProperty(null);
+    form.reset();
+    setDialogOpen(true);
   };
 
   const filteredProperties = properties?.filter((property) => {
@@ -136,26 +229,36 @@ export default function Properties() {
     return matchesSearch && matchesType && matchesStatus;
   });
 
+  const isSubmitting = createMutation.isPending || updateMutation.isPending;
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold font-heading">{t("properties.title")}</h1>
           <p className="text-muted-foreground mt-1">
-            {properties?.length || 0} total properties
+            {properties?.length || 0} {language === "ar" ? "عقار" : "total properties"}
           </p>
         </div>
 
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <Dialog open={dialogOpen} onOpenChange={(open) => {
+          if (!open) handleCloseDialog();
+          else setDialogOpen(true);
+        }}>
           <DialogTrigger asChild>
-            <Button data-testid="button-new-property">
+            <Button data-testid="button-new-property" onClick={handleOpenNewProperty}>
               <Plus className="h-4 w-4 ltr:mr-2 rtl:ml-2" />
               {t("properties.new")}
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-lg max-h-[90vh]">
             <DialogHeader>
-              <DialogTitle className="font-heading">{t("properties.new")}</DialogTitle>
+              <DialogTitle className="font-heading">
+                {editingProperty 
+                  ? (language === "ar" ? "تعديل العقار" : "Edit Property")
+                  : t("properties.new")
+                }
+              </DialogTitle>
             </DialogHeader>
             <ScrollArea className="max-h-[70vh] pr-4">
               <Form {...form}>
@@ -165,7 +268,7 @@ export default function Properties() {
                     name="title"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Title (English)</FormLabel>
+                        <FormLabel>{language === "ar" ? "العنوان (بالإنجليزية)" : "Title (English)"}</FormLabel>
                         <FormControl>
                           <Input 
                             placeholder="Luxury 3BR Apartment" 
@@ -183,7 +286,7 @@ export default function Properties() {
                     name="titleAr"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Title (Arabic)</FormLabel>
+                        <FormLabel>{language === "ar" ? "العنوان (بالعربية)" : "Title (Arabic)"}</FormLabel>
                         <FormControl>
                           <Input 
                             placeholder="شقة فاخرة 3 غرف نوم" 
@@ -204,7 +307,7 @@ export default function Properties() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>{t("properties.type")}</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <Select onValueChange={field.onChange} value={field.value}>
                             <FormControl>
                               <SelectTrigger data-testid="select-property-type">
                                 <SelectValue />
@@ -229,7 +332,7 @@ export default function Properties() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>{t("properties.status")}</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <Select onValueChange={field.onChange} value={field.value}>
                             <FormControl>
                               <SelectTrigger data-testid="select-property-status">
                                 <SelectValue />
@@ -254,11 +357,12 @@ export default function Properties() {
                     name="price"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>{t("properties.price")} (AED)</FormLabel>
+                        <FormLabel>{t("properties.price")} (SAR)</FormLabel>
                         <FormControl>
                           <Input 
                             type="number"
                             placeholder="1500000" 
+                            dir="ltr"
                             {...field} 
                             data-testid="input-property-price"
                           />
@@ -274,11 +378,12 @@ export default function Properties() {
                       name="area"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>{t("properties.area")} (sqft)</FormLabel>
+                          <FormLabel>{t("properties.area")} (م²)</FormLabel>
                           <FormControl>
                             <Input 
                               type="number"
-                              placeholder="1500" 
+                              placeholder="150" 
+                              dir="ltr"
                               {...field} 
                               data-testid="input-property-area"
                             />
@@ -298,6 +403,7 @@ export default function Properties() {
                             <Input 
                               type="number"
                               placeholder="3" 
+                              dir="ltr"
                               {...field} 
                               data-testid="input-property-bedrooms"
                             />
@@ -317,6 +423,7 @@ export default function Properties() {
                             <Input 
                               type="number"
                               placeholder="2" 
+                              dir="ltr"
                               {...field} 
                               data-testid="input-property-bathrooms"
                             />
@@ -332,10 +439,10 @@ export default function Properties() {
                     name="location"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>{t("properties.location")} (English)</FormLabel>
+                        <FormLabel>{t("properties.location")} ({language === "ar" ? "بالإنجليزية" : "English"})</FormLabel>
                         <FormControl>
                           <Input 
-                            placeholder="Downtown Dubai" 
+                            placeholder="Al Olaya, Riyadh" 
                             {...field} 
                             data-testid="input-property-location"
                           />
@@ -350,10 +457,10 @@ export default function Properties() {
                     name="locationAr"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>{t("properties.location")} (Arabic)</FormLabel>
+                        <FormLabel>{t("properties.location")} ({language === "ar" ? "بالعربية" : "Arabic"})</FormLabel>
                         <FormControl>
                           <Input 
-                            placeholder="وسط مدينة دبي"
+                            placeholder="العليا، الرياض"
                             dir="rtl"
                             {...field} 
                             data-testid="input-property-location-ar"
@@ -369,10 +476,10 @@ export default function Properties() {
                     name="description"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Description</FormLabel>
+                        <FormLabel>{language === "ar" ? "الوصف" : "Description"}</FormLabel>
                         <FormControl>
                           <Textarea 
-                            placeholder="Property description..." 
+                            placeholder={language === "ar" ? "وصف العقار..." : "Property description..."} 
                             rows={3}
                             {...field} 
                             data-testid="input-property-description"
@@ -387,16 +494,22 @@ export default function Properties() {
                     <Button 
                       type="button" 
                       variant="outline" 
-                      onClick={() => setDialogOpen(false)}
+                      onClick={handleCloseDialog}
                     >
                       {t("common.cancel")}
                     </Button>
                     <Button 
                       type="submit" 
-                      disabled={createMutation.isPending}
+                      disabled={isSubmitting}
                       data-testid="button-save-property"
                     >
-                      {createMutation.isPending ? t("common.loading") : t("common.save")}
+                      {isSubmitting 
+                        ? t("common.loading") 
+                        : (editingProperty 
+                            ? (language === "ar" ? "تحديث" : "Update")
+                            : t("common.save")
+                          )
+                      }
                     </Button>
                   </div>
                 </form>
@@ -425,7 +538,7 @@ export default function Properties() {
             <SelectValue placeholder="Type" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">{t("common.all")} Types</SelectItem>
+            <SelectItem value="all">{t("common.all")} {language === "ar" ? "الأنواع" : "Types"}</SelectItem>
             {PropertyTypes.map((type) => (
               <SelectItem key={type} value={type}>
                 {t(`type.${type}`)}
@@ -439,7 +552,7 @@ export default function Properties() {
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">{t("common.all")} Status</SelectItem>
+            <SelectItem value="all">{t("common.all")} {language === "ar" ? "الحالات" : "Status"}</SelectItem>
             {PropertyStatuses.map((status) => (
               <SelectItem key={status} value={status}>
                 {t(`status.${status}`)}
@@ -483,6 +596,7 @@ export default function Properties() {
               <PropertyCard 
                 key={property.id} 
                 property={property} 
+                onEdit={handleEdit}
                 onDelete={(property) => deleteMutation.mutate(property.id)}
               />
             ))}
@@ -493,7 +607,7 @@ export default function Properties() {
             title={t("properties.noProperties")}
             description={t("properties.addFirst")}
             actionLabel={t("properties.new")}
-            onAction={() => setDialogOpen(true)}
+            onAction={handleOpenNewProperty}
           />
         )}
       </ScrollArea>

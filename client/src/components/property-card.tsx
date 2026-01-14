@@ -94,7 +94,7 @@ export function PropertyCard({ property, onEdit, onDelete, onView }: PropertyCar
 
         <div className="absolute bottom-3 left-3">
           <Badge variant="secondary" className="bg-primary text-primary-foreground font-semibold">
-            AED {formatPrice(property.price)}
+            SAR {formatPrice(property.price)}
           </Badge>
         </div>
       </div>

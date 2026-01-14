@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Plus, Search, Filter, Download, Upload, LayoutGrid, List, Users, Columns } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -63,6 +63,7 @@ export default function Leads() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [sourceFilter, setSourceFilter] = useState<string>("all");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingLead, setEditingLead] = useState<Lead | null>(null);
 
   const { data: leads, isLoading } = useQuery<Lead[]>({
     queryKey: ["/api/leads"],
@@ -82,6 +83,32 @@ export default function Leads() {
     },
   });
 
+  useEffect(() => {
+    if (editingLead) {
+      form.reset({
+        name: editingLead.name,
+        phone: editingLead.phone,
+        email: editingLead.email || "",
+        source: editingLead.source as typeof LeadSources[number],
+        status: editingLead.status as typeof LeadStatuses[number],
+        notes: editingLead.notes || "",
+        budget: editingLead.budget || "",
+        propertyInterest: editingLead.propertyInterest || "",
+      });
+    } else {
+      form.reset({
+        name: "",
+        phone: "",
+        email: "",
+        source: "website",
+        status: "new",
+        notes: "",
+        budget: "",
+        propertyInterest: "",
+      });
+    }
+  }, [editingLead, form]);
+
   const createMutation = useMutation({
     mutationFn: (data: LeadFormValues) => apiRequest("POST", "/api/leads", data),
     onSuccess: () => {
@@ -98,6 +125,22 @@ export default function Leads() {
     },
   });
 
+  const updateMutation = useMutation({
+    mutationFn: ({ id, updates }: { id: string; updates: Partial<Lead> }) => 
+      apiRequest("PATCH", `/api/leads/${id}`, updates),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/activities"] });
+      setDialogOpen(false);
+      setEditingLead(null);
+      form.reset();
+      toast({ title: language === "ar" ? "تم تحديث العميل بنجاح" : "Lead updated successfully" });
+    },
+    onError: () => {
+      toast({ title: language === "ar" ? "فشل تحديث العميل" : "Failed to update lead", variant: "destructive" });
+    },
+  });
+
   const deleteMutation = useMutation({
     mutationFn: (id: string) => apiRequest("DELETE", `/api/leads/${id}`),
     onSuccess: () => {
@@ -111,17 +154,29 @@ export default function Leads() {
     },
   });
 
-  const updateMutation = useMutation({
-    mutationFn: ({ id, updates }: { id: string; updates: Partial<Lead> }) => 
-      apiRequest("PATCH", `/api/leads/${id}`, updates),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/leads"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/activities"] });
-    },
-  });
-
   const onSubmit = (data: LeadFormValues) => {
-    createMutation.mutate(data);
+    if (editingLead) {
+      updateMutation.mutate({ id: editingLead.id, updates: data });
+    } else {
+      createMutation.mutate(data);
+    }
+  };
+
+  const handleEdit = (lead: Lead) => {
+    setEditingLead(lead);
+    setDialogOpen(true);
+  };
+
+  const handleCloseDialog = () => {
+    setDialogOpen(false);
+    setEditingLead(null);
+    form.reset();
+  };
+
+  const handleOpenNewLead = () => {
+    setEditingLead(null);
+    form.reset();
+    setDialogOpen(true);
   };
 
   const filteredLeads = leads?.filter((lead) => {
@@ -139,6 +194,8 @@ export default function Leads() {
     return acc;
   }, {} as Record<string, number>) || {};
 
+  const isSubmitting = createMutation.isPending || updateMutation.isPending;
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -149,16 +206,24 @@ export default function Leads() {
           </p>
         </div>
 
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <Dialog open={dialogOpen} onOpenChange={(open) => {
+          if (!open) handleCloseDialog();
+          else setDialogOpen(true);
+        }}>
           <DialogTrigger asChild>
-            <Button data-testid="button-new-lead">
+            <Button data-testid="button-new-lead" onClick={handleOpenNewLead}>
               <Plus className="h-4 w-4 ltr:mr-2 rtl:ml-2" />
               {t("leads.new")}
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
-              <DialogTitle className="font-heading">{t("leads.new")}</DialogTitle>
+              <DialogTitle className="font-heading">
+                {editingLead 
+                  ? (language === "ar" ? "تعديل العميل" : "Edit Lead")
+                  : t("leads.new")
+                }
+              </DialogTitle>
             </DialogHeader>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -226,7 +291,7 @@ export default function Leads() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>{t("leads.source")}</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
                             <SelectTrigger data-testid="select-lead-source">
                               <SelectValue />
@@ -251,7 +316,7 @@ export default function Leads() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>{t("leads.status")}</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
                             <SelectTrigger data-testid="select-lead-status">
                               <SelectValue />
@@ -329,16 +394,22 @@ export default function Leads() {
                   <Button 
                     type="button" 
                     variant="outline" 
-                    onClick={() => setDialogOpen(false)}
+                    onClick={handleCloseDialog}
                   >
                     {t("common.cancel")}
                   </Button>
                   <Button 
                     type="submit" 
-                    disabled={createMutation.isPending}
+                    disabled={isSubmitting}
                     data-testid="button-save-lead"
                   >
-                    {createMutation.isPending ? t("common.loading") : t("common.save")}
+                    {isSubmitting 
+                      ? t("common.loading") 
+                      : (editingLead 
+                          ? (language === "ar" ? "تحديث" : "Update")
+                          : t("common.save")
+                        )
+                    }
                   </Button>
                 </div>
               </form>
@@ -433,6 +504,7 @@ export default function Leads() {
             leads={filteredLeads}
             onLeadUpdate={(id, updates) => updateMutation.mutate({ id, updates })}
             onLeadDelete={(lead) => deleteMutation.mutate(lead.id)}
+            onLeadEdit={handleEdit}
           />
         ) : (
           <EmptyState
@@ -440,7 +512,7 @@ export default function Leads() {
             title={t("leads.noLeads")}
             description={t("leads.addFirst")}
             actionLabel={t("leads.new")}
-            onAction={() => setDialogOpen(true)}
+            onAction={handleOpenNewLead}
           />
         )
       ) : (
@@ -467,6 +539,7 @@ export default function Leads() {
                 <LeadCard 
                   key={lead.id} 
                   lead={lead} 
+                  onEdit={handleEdit}
                   onDelete={(lead) => deleteMutation.mutate(lead.id)}
                 />
               ))}
@@ -477,7 +550,7 @@ export default function Leads() {
               title={t("leads.noLeads")}
               description={t("leads.addFirst")}
               actionLabel={t("leads.new")}
-              onAction={() => setDialogOpen(true)}
+              onAction={handleOpenNewLead}
             />
           )}
         </ScrollArea>

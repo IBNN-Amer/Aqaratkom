@@ -54,6 +54,7 @@ interface LeadsKanbanProps {
   leads: Lead[];
   onLeadUpdate: (id: string, updates: Partial<Lead>) => void;
   onLeadDelete: (lead: Lead) => void;
+  onLeadEdit?: (lead: Lead) => void;
 }
 
 const stageColors: Record<string, string> = {
@@ -77,11 +78,13 @@ const stageHeaderColors: Record<string, string> = {
 function KanbanCard({ 
   lead, 
   onDragStart, 
-  onScheduleFollowUp 
+  onScheduleFollowUp,
+  onEdit
 }: { 
   lead: Lead; 
   onDragStart: (e: React.DragEvent, lead: Lead) => void;
   onScheduleFollowUp: (lead: Lead) => void;
+  onEdit?: (lead: Lead) => void;
 }) {
   const { t, language } = useI18n();
 
@@ -138,6 +141,15 @@ function KanbanCard({
               variant="ghost" 
               size="icon" 
               className="h-7 w-7"
+              onClick={(e) => { e.stopPropagation(); onEdit?.(lead); }}
+              data-testid={`button-edit-${lead.id}`}
+            >
+              <User className="h-3 w-3" />
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-7 w-7"
               onClick={(e) => { e.stopPropagation(); window.open(`tel:${lead.phone}`); }}
               data-testid={`button-call-${lead.id}`}
             >
@@ -174,7 +186,8 @@ function KanbanColumn({
   onDrop, 
   onDragOver, 
   onDragStart,
-  onScheduleFollowUp 
+  onScheduleFollowUp,
+  onEdit
 }: { 
   status: string; 
   leads: Lead[];
@@ -182,6 +195,7 @@ function KanbanColumn({
   onDragOver: (e: React.DragEvent) => void;
   onDragStart: (e: React.DragEvent, lead: Lead) => void;
   onScheduleFollowUp: (lead: Lead) => void;
+  onEdit?: (lead: Lead) => void;
 }) {
   const { t } = useI18n();
   const [isDragOver, setIsDragOver] = useState(false);
@@ -222,6 +236,7 @@ function KanbanColumn({
               lead={lead} 
               onDragStart={onDragStart}
               onScheduleFollowUp={onScheduleFollowUp}
+              onEdit={onEdit}
             />
           ))}
           {leads.length === 0 && (
@@ -235,7 +250,7 @@ function KanbanColumn({
   );
 }
 
-export function LeadsKanban({ leads, onLeadUpdate, onLeadDelete }: LeadsKanbanProps) {
+export function LeadsKanban({ leads, onLeadUpdate, onLeadDelete, onLeadEdit }: LeadsKanbanProps) {
   const { t, language } = useI18n();
   const { toast } = useToast();
   const [draggedLead, setDraggedLead] = useState<Lead | null>(null);
@@ -353,6 +368,7 @@ export function LeadsKanban({ leads, onLeadUpdate, onLeadDelete }: LeadsKanbanPr
             onDragOver={handleDragOver}
             onDragStart={handleDragStart}
             onScheduleFollowUp={handleScheduleFollowUp}
+            onEdit={onLeadEdit}
           />
         ))}
       </div>
