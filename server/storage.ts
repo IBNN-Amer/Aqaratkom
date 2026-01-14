@@ -14,7 +14,10 @@ import type {
   PropertyRequest, InsertPropertyRequest,
   PropertyMatch, InsertPropertyMatch,
   Notification, InsertNotification,
-  FollowUp, InsertFollowUp
+  FollowUp, InsertFollowUp,
+  CrmIntegration, InsertCrmIntegration,
+  CrmSyncJob, InsertCrmSyncJob,
+  CrmSyncLog, InsertCrmSyncLog
 } from "@shared/schema";
 
 export interface IStorage {
@@ -145,6 +148,20 @@ export interface IStorage {
   updateFollowUp(id: string, followUp: Partial<InsertFollowUp>): Promise<FollowUp | undefined>;
   completeFollowUp(id: string, notes?: string): Promise<FollowUp | undefined>;
   deleteFollowUp(id: string): Promise<boolean>;
+  
+  getCrmIntegrations(userId: string): Promise<CrmIntegration[]>;
+  getCrmIntegration(id: string): Promise<CrmIntegration | undefined>;
+  createCrmIntegration(integration: InsertCrmIntegration): Promise<CrmIntegration>;
+  updateCrmIntegration(id: string, integration: Partial<InsertCrmIntegration>): Promise<CrmIntegration | undefined>;
+  deleteCrmIntegration(id: string): Promise<boolean>;
+  
+  getCrmSyncJobs(integrationId: string): Promise<CrmSyncJob[]>;
+  getCrmSyncJob(id: string): Promise<CrmSyncJob | undefined>;
+  createCrmSyncJob(job: InsertCrmSyncJob): Promise<CrmSyncJob>;
+  updateCrmSyncJob(id: string, job: Partial<CrmSyncJob>): Promise<CrmSyncJob | undefined>;
+  
+  getCrmSyncLogs(syncJobId: string): Promise<CrmSyncLog[]>;
+  createCrmSyncLog(log: InsertCrmSyncLog): Promise<CrmSyncLog>;
 }
 
 export class MemStorage implements IStorage {
@@ -163,6 +180,9 @@ export class MemStorage implements IStorage {
   private propertyMatches: Map<string, PropertyMatch> = new Map();
   private notifications: Map<string, Notification> = new Map();
   private followUps: Map<string, FollowUp> = new Map();
+  private crmIntegrations: Map<string, CrmIntegration> = new Map();
+  private crmSyncJobs: Map<string, CrmSyncJob> = new Map();
+  private crmSyncLogs: Map<string, CrmSyncLog> = new Map();
 
   constructor() {
     this.seedData();
@@ -1199,6 +1219,121 @@ export class MemStorage implements IStorage {
 
   async deleteFollowUp(id: string): Promise<boolean> {
     return this.followUps.delete(id);
+  }
+
+  async getCrmIntegrations(userId: string): Promise<CrmIntegration[]> {
+    return Array.from(this.crmIntegrations.values())
+      .filter(i => i.userId === userId)
+      .sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime());
+  }
+
+  async getCrmIntegration(id: string): Promise<CrmIntegration | undefined> {
+    return this.crmIntegrations.get(id);
+  }
+
+  async createCrmIntegration(integration: InsertCrmIntegration): Promise<CrmIntegration> {
+    const id = randomUUID();
+    const now = new Date();
+    const newIntegration: CrmIntegration = {
+      id,
+      userId: integration.userId,
+      provider: integration.provider,
+      name: integration.name,
+      nameAr: integration.nameAr ?? null,
+      isActive: integration.isActive ?? true,
+      apiKey: integration.apiKey ?? null,
+      apiSecret: integration.apiSecret ?? null,
+      instanceUrl: integration.instanceUrl ?? null,
+      accessToken: integration.accessToken ?? null,
+      refreshToken: integration.refreshToken ?? null,
+      tokenExpiresAt: integration.tokenExpiresAt ?? null,
+      syncMode: integration.syncMode ?? "one_way_import",
+      syncEntities: integration.syncEntities ?? null,
+      fieldMappings: integration.fieldMappings ?? null,
+      lastSyncAt: null,
+      lastSyncStatus: null,
+      createdAt: now,
+      updatedAt: now,
+    };
+    this.crmIntegrations.set(id, newIntegration);
+    return newIntegration;
+  }
+
+  async updateCrmIntegration(id: string, updates: Partial<InsertCrmIntegration>): Promise<CrmIntegration | undefined> {
+    const integration = this.crmIntegrations.get(id);
+    if (!integration) return undefined;
+    const updated = { ...integration, ...updates, updatedAt: new Date() };
+    this.crmIntegrations.set(id, updated);
+    return updated;
+  }
+
+  async deleteCrmIntegration(id: string): Promise<boolean> {
+    return this.crmIntegrations.delete(id);
+  }
+
+  async getCrmSyncJobs(integrationId: string): Promise<CrmSyncJob[]> {
+    return Array.from(this.crmSyncJobs.values())
+      .filter(j => j.integrationId === integrationId)
+      .sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime());
+  }
+
+  async getCrmSyncJob(id: string): Promise<CrmSyncJob | undefined> {
+    return this.crmSyncJobs.get(id);
+  }
+
+  async createCrmSyncJob(job: InsertCrmSyncJob): Promise<CrmSyncJob> {
+    const id = randomUUID();
+    const newJob: CrmSyncJob = {
+      id,
+      integrationId: job.integrationId,
+      jobType: job.jobType,
+      entityType: job.entityType,
+      status: job.status ?? "queued",
+      direction: job.direction,
+      totalRecords: job.totalRecords ?? 0,
+      processedRecords: job.processedRecords ?? 0,
+      successRecords: job.successRecords ?? 0,
+      failedRecords: job.failedRecords ?? 0,
+      errorMessage: job.errorMessage ?? null,
+      startedAt: null,
+      completedAt: null,
+      createdAt: new Date(),
+    };
+    this.crmSyncJobs.set(id, newJob);
+    return newJob;
+  }
+
+  async updateCrmSyncJob(id: string, updates: Partial<CrmSyncJob>): Promise<CrmSyncJob | undefined> {
+    const job = this.crmSyncJobs.get(id);
+    if (!job) return undefined;
+    const updated = { ...job, ...updates };
+    this.crmSyncJobs.set(id, updated);
+    return updated;
+  }
+
+  async getCrmSyncLogs(syncJobId: string): Promise<CrmSyncLog[]> {
+    return Array.from(this.crmSyncLogs.values())
+      .filter(l => l.syncJobId === syncJobId)
+      .sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime());
+  }
+
+  async createCrmSyncLog(log: InsertCrmSyncLog): Promise<CrmSyncLog> {
+    const id = randomUUID();
+    const newLog: CrmSyncLog = {
+      id,
+      syncJobId: log.syncJobId,
+      entityType: log.entityType,
+      entityId: log.entityId ?? null,
+      externalId: log.externalId ?? null,
+      action: log.action,
+      status: log.status,
+      errorMessage: log.errorMessage ?? null,
+      requestPayload: log.requestPayload ?? null,
+      responsePayload: log.responsePayload ?? null,
+      createdAt: new Date(),
+    };
+    this.crmSyncLogs.set(id, newLog);
+    return newLog;
   }
 }
 

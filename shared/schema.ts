@@ -264,6 +264,59 @@ export const propertyMatches = pgTable("property_matches", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const crmIntegrations = pgTable("crm_integrations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  provider: text("provider").notNull(),
+  name: text("name").notNull(),
+  nameAr: text("name_ar"),
+  isActive: boolean("is_active").default(true),
+  apiKey: text("api_key"),
+  apiSecret: text("api_secret"),
+  instanceUrl: text("instance_url"),
+  accessToken: text("access_token"),
+  refreshToken: text("refresh_token"),
+  tokenExpiresAt: timestamp("token_expires_at"),
+  syncMode: text("sync_mode").notNull().default("one_way_import"),
+  syncEntities: text("sync_entities").array(),
+  fieldMappings: text("field_mappings"),
+  lastSyncAt: timestamp("last_sync_at"),
+  lastSyncStatus: text("last_sync_status"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const crmSyncJobs = pgTable("crm_sync_jobs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  integrationId: varchar("integration_id").notNull(),
+  jobType: text("job_type").notNull(),
+  entityType: text("entity_type").notNull(),
+  status: text("status").notNull().default("queued"),
+  direction: text("direction").notNull(),
+  totalRecords: integer("total_records").default(0),
+  processedRecords: integer("processed_records").default(0),
+  successRecords: integer("success_records").default(0),
+  failedRecords: integer("failed_records").default(0),
+  errorMessage: text("error_message"),
+  startedAt: timestamp("started_at"),
+  completedAt: timestamp("completed_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const crmSyncLogs = pgTable("crm_sync_logs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  syncJobId: varchar("sync_job_id").notNull(),
+  entityType: text("entity_type").notNull(),
+  entityId: varchar("entity_id"),
+  externalId: varchar("external_id"),
+  action: text("action").notNull(),
+  status: text("status").notNull(),
+  errorMessage: text("error_message"),
+  requestPayload: text("request_payload"),
+  responsePayload: text("response_payload"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true, lastLoginAt: true });
 export const insertLeadSchema = createInsertSchema(leads).omit({ id: true, createdAt: true });
 export const insertPropertySchema = createInsertSchema(properties).omit({ id: true, createdAt: true, updatedAt: true });
@@ -279,6 +332,9 @@ export const insertPropertyRequestSchema = createInsertSchema(propertyRequests).
 export const insertPropertyMatchSchema = createInsertSchema(propertyMatches).omit({ id: true, createdAt: true });
 export const insertNotificationSchema = createInsertSchema(notifications).omit({ id: true, createdAt: true, readAt: true });
 export const insertFollowUpSchema = createInsertSchema(followUps).omit({ id: true, createdAt: true, updatedAt: true, completedAt: true });
+export const insertCrmIntegrationSchema = createInsertSchema(crmIntegrations).omit({ id: true, createdAt: true, updatedAt: true, lastSyncAt: true });
+export const insertCrmSyncJobSchema = createInsertSchema(crmSyncJobs).omit({ id: true, createdAt: true, startedAt: true, completedAt: true });
+export const insertCrmSyncLogSchema = createInsertSchema(crmSyncLogs).omit({ id: true, createdAt: true });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -310,6 +366,12 @@ export type InsertNotification = z.infer<typeof insertNotificationSchema>;
 export type Notification = typeof notifications.$inferSelect;
 export type InsertFollowUp = z.infer<typeof insertFollowUpSchema>;
 export type FollowUp = typeof followUps.$inferSelect;
+export type InsertCrmIntegration = z.infer<typeof insertCrmIntegrationSchema>;
+export type CrmIntegration = typeof crmIntegrations.$inferSelect;
+export type InsertCrmSyncJob = z.infer<typeof insertCrmSyncJobSchema>;
+export type CrmSyncJob = typeof crmSyncJobs.$inferSelect;
+export type InsertCrmSyncLog = z.infer<typeof insertCrmSyncLogSchema>;
+export type CrmSyncLog = typeof crmSyncLogs.$inferSelect;
 
 export const LeadSources = ["facebook", "instagram", "website", "whatsapp", "referral", "phone", "walk_in"] as const;
 export const LeadStatuses = ["new", "contacted", "qualified", "negotiating", "won", "lost"] as const;
@@ -354,3 +416,17 @@ export type NotificationType = typeof NotificationTypes[number];
 export type NotificationPriority = typeof NotificationPriorities[number];
 export type FollowUpType = typeof FollowUpTypes[number];
 export type FollowUpStatus = typeof FollowUpStatuses[number];
+
+export const CrmProviders = ["salesforce", "hubspot", "zoho"] as const;
+export const CrmSyncModes = ["one_way_import", "one_way_export", "two_way"] as const;
+export const CrmSyncEntities = ["leads", "contacts", "deals", "properties"] as const;
+export const CrmSyncJobStatuses = ["queued", "running", "success", "failed", "cancelled"] as const;
+export const CrmSyncDirections = ["import", "export"] as const;
+export const CrmSyncActions = ["create", "update", "delete", "skip"] as const;
+
+export type CrmProvider = typeof CrmProviders[number];
+export type CrmSyncMode = typeof CrmSyncModes[number];
+export type CrmSyncEntity = typeof CrmSyncEntities[number];
+export type CrmSyncJobStatus = typeof CrmSyncJobStatuses[number];
+export type CrmSyncDirection = typeof CrmSyncDirections[number];
+export type CrmSyncAction = typeof CrmSyncActions[number];
