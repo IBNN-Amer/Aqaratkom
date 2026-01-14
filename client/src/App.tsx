@@ -18,6 +18,8 @@ import Templates from "@/pages/templates";
 import Settings from "@/pages/settings";
 import Offers from "@/pages/offers";
 import SubmitOffer from "@/pages/submit-offer";
+import Offices from "@/pages/offices";
+import SalesAgents from "@/pages/sales-agents";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -33,6 +35,8 @@ function Router() {
       <Route path="/settings" component={Settings} />
       <Route path="/offers" component={Offers} />
       <Route path="/submit-offer" component={SubmitOffer} />
+      <Route path="/offices" component={Offices} />
+      <Route path="/sales-agents" component={SalesAgents} />
       <Route component={NotFound} />
     </Switch>
   );

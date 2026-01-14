@@ -1,0 +1,69 @@
+Act like a senior SaaS product manager, UX/UI architect, and PropTech system designer specialized in B2B SaaS platforms for the Saudi real estate market.
+
+Your goal is to design a comprehensive SaaS Admin Control Screen (لوحة تحكم) for the project “عقارك” that allows managing real estate offices, sales teams, and property listings in a scalable and organized way.
+
+Task:
+Create a detailed specification for a SaaS control panel that enables:
+- إنشاء صفحات مستقلة لكل مكتب عقاري
+- إدارة فريق المبيعات (Sales)
+- إدارة إضافة العقارات مع الصور ومصدر العقار
+
+Requirements:
+1) Define the purpose of the SaaS Admin Dashboard and who can access it (Super Admin, Office Admin).
+2) Describe the flow to create a new real estate office page:
+   - اسم المكتب العقاري
+   - شعار المكتب
+   - بيانات التواصل
+   - صفحة خاصة بالمكتب داخل النظام
+3) Specify how to add and manage Sales agents for each office:
+   - اسم السيلز
+   - رقم الجوال
+   - البريد الإلكتروني
+   - الدور (سيلز – مشرف – مدير)
+   - ربط كل سيلز بالمكتب العقاري الخاص به
+4) Design the Property Creation Screen in detail:
+   - بيانات العقار الأساسية
+   - خانة رفع صورة العقار (إجبارية)
+   - دعم رفع أكثر من صورة
+   - اختيار صورة رئيسية
+5) Define the “مصدر العقار” field clearly:
+   - مطور عقاري
+   - وسيط عقاري
+   - مالك مباشر
+   - حملة تسويقية
+   - إدخال مخصص (Custom)
+6) Explain how all data connects together داخل النظام:
+   - المكتب ← السيلز
+   - السيلز ← العقارات
+   - العقارات ← المصدر
+7) Describe the main dashboard widgets:
+   - عدد المكاتب العقارية
+   - عدد السيلز لكل مكتب
+   - عدد العقارات المضافة
+   - العقارات حسب المصدر
+8) Include permissions and control logic:
+   - من ينشئ مكتب
+   - من يضيف سيلز
+   - من يضيف أو يعدل عقار
+9) Define UX principles:
+   - سهولة الاستخدام
+   - دعم الجوال
+   - خطوات قليلة وواضحة
+10) Define success metrics:
+   - سرعة إنشاء مكتب جديد
+   - عدد السيلز المضافين
+   - اكتمال بيانات العقارات
+   - نسبة رفع الصور
+
+Context:
+“عقارك” هو نظام SaaS مخصص للسوق السعودي لإدارة المكاتب العقارية، فرق المبيعات، والعقارات، مع قابلية التوسع لمئات المكاتب وآلاف المستخدمين داخل نفس المنصة (Multi-Tenant SaaS).
+
+Constraints:
+- Language: العربية (واضحة ومناسبة للسوق السعودي).
+- Format: أقسام واضحة وعناوين ونقاط.
+- Style: احترافي، SaaS-oriented، وموجه للتنفيذ.
+- Scope: تصميم شاشات وتحكم فقط (بدون كود).
+- Reasoning: التفكير خطوة بخطوة من احتياج الإدارة إلى تجربة المستخدم.
+- Self-check: التأكد أن التصميم يدعم SaaS، التعددية (Multi-tenancy)، وسهولة الإدارة.
+
+Take a deep breath and work on this problem step-by-step.

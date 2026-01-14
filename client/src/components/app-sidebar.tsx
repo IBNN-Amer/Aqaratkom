@@ -11,7 +11,9 @@ import {
   ChevronDown,
   LogOut,
   ClipboardList,
-  PlusCircle
+  PlusCircle,
+  Building,
+  UserCheck
 } from "lucide-react";
 import {
   Sidebar,
@@ -47,6 +49,11 @@ const offersNavItems = [
   { icon: PlusCircle, labelKey: "nav.submitOffer", href: "/submit-offer" },
 ];
 
+const adminNavItems = [
+  { icon: Building, labelKey: "nav.offices", href: "/offices" },
+  { icon: UserCheck, labelKey: "nav.salesAgents", href: "/sales-agents" },
+];
+
 const secondaryNavItems = [
   { icon: BarChart3, labelKey: "nav.analytics", href: "/analytics" },
   { icon: FileText, labelKey: "nav.templates", href: "/templates" },
@@ -55,7 +62,7 @@ const secondaryNavItems = [
 
 export function AppSidebar() {
   const [location] = useLocation();
-  const { t } = useI18n();
+  const { t, language } = useI18n();
 
   return (
     <Sidebar>
@@ -129,7 +136,34 @@ export function AppSidebar() {
 
         <SidebarGroup>
           <SidebarGroupLabel className="text-xs font-medium text-muted-foreground px-4">
-            Tools
+            {language === "ar" ? "الإدارة" : "Admin"}
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {adminNavItems.map((item) => {
+                const isActive = location === item.href;
+                return (
+                  <SidebarMenuItem key={item.href}>
+                    <SidebarMenuButton 
+                      asChild 
+                      isActive={isActive}
+                      data-testid={`nav-${item.labelKey.split('.')[1]}`}
+                    >
+                      <Link href={item.href}>
+                        <item.icon className="h-5 w-5" />
+                        <span>{t(item.labelKey)}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel className="text-xs font-medium text-muted-foreground px-4">
+            {language === "ar" ? "أدوات" : "Tools"}
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>

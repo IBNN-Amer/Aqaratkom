@@ -31,6 +31,8 @@ export const leads = pgTable("leads", {
 
 export const properties = pgTable("properties", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  officeId: varchar("office_id"),
+  agentId: varchar("agent_id"),
   title: text("title").notNull(),
   titleAr: text("title_ar"),
   description: text("description"),
@@ -44,8 +46,12 @@ export const properties = pgTable("properties", {
   location: text("location").notNull(),
   locationAr: text("location_ar"),
   images: text("images").array(),
+  primaryImageIndex: integer("primary_image_index").default(0),
   features: text("features").array(),
+  propertySource: text("property_source"),
+  sourceDetails: text("source_details"),
   createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const deals = pgTable("deals", {
@@ -107,6 +113,41 @@ export const activities = pgTable("activities", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const realEstateOffices = pgTable("real_estate_offices", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  nameAr: text("name_ar"),
+  logo: text("logo"),
+  phone: text("phone").notNull(),
+  email: text("email"),
+  whatsapp: text("whatsapp"),
+  address: text("address"),
+  addressAr: text("address_ar"),
+  city: text("city"),
+  licenseNumber: text("license_number"),
+  description: text("description"),
+  descriptionAr: text("description_ar"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const salesAgents = pgTable("sales_agents", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  officeId: varchar("office_id").notNull(),
+  name: text("name").notNull(),
+  nameAr: text("name_ar"),
+  phone: text("phone").notNull(),
+  email: text("email"),
+  role: text("role").notNull().default("sales"),
+  avatar: text("avatar"),
+  isActive: boolean("is_active").default(true),
+  propertiesCount: integer("properties_count").default(0),
+  dealsCount: integer("deals_count").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 export const propertyOffers = pgTable("property_offers", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   city: text("city").notNull(),
@@ -140,13 +181,15 @@ export const propertyOffers = pgTable("property_offers", {
 
 export const insertUserSchema = createInsertSchema(users).omit({ id: true });
 export const insertLeadSchema = createInsertSchema(leads).omit({ id: true, createdAt: true });
-export const insertPropertySchema = createInsertSchema(properties).omit({ id: true, createdAt: true });
+export const insertPropertySchema = createInsertSchema(properties).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertDealSchema = createInsertSchema(deals).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertConversationSchema = createInsertSchema(conversations).omit({ id: true, createdAt: true });
 export const insertMessageSchema = createInsertSchema(messages).omit({ id: true, createdAt: true });
 export const insertMessageTemplateSchema = createInsertSchema(messageTemplates).omit({ id: true, createdAt: true });
 export const insertActivitySchema = createInsertSchema(activities).omit({ id: true, createdAt: true });
 export const insertPropertyOfferSchema = createInsertSchema(propertyOffers).omit({ id: true, createdAt: true, updatedAt: true, reviewedAt: true });
+export const insertRealEstateOfficeSchema = createInsertSchema(realEstateOffices).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertSalesAgentSchema = createInsertSchema(salesAgents).omit({ id: true, createdAt: true, updatedAt: true });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -166,6 +209,10 @@ export type InsertActivity = z.infer<typeof insertActivitySchema>;
 export type Activity = typeof activities.$inferSelect;
 export type InsertPropertyOffer = z.infer<typeof insertPropertyOfferSchema>;
 export type PropertyOffer = typeof propertyOffers.$inferSelect;
+export type InsertRealEstateOffice = z.infer<typeof insertRealEstateOfficeSchema>;
+export type RealEstateOffice = typeof realEstateOffices.$inferSelect;
+export type InsertSalesAgent = z.infer<typeof insertSalesAgentSchema>;
+export type SalesAgent = typeof salesAgents.$inferSelect;
 
 export const LeadSources = ["facebook", "instagram", "website", "whatsapp", "referral", "phone", "walk_in"] as const;
 export const LeadStatuses = ["new", "contacted", "qualified", "negotiating", "won", "lost"] as const;
@@ -189,3 +236,9 @@ export type OfferPropertyType = typeof OfferPropertyTypes[number];
 export type ListingType = typeof ListingTypes[number];
 export type PropertyCondition = typeof PropertyConditions[number];
 export type OfferReviewStatus = typeof OfferReviewStatuses[number];
+
+export const PropertySources = ["developer", "broker", "direct_owner", "marketing_campaign", "custom"] as const;
+export const SalesAgentRoles = ["sales", "supervisor", "manager"] as const;
+
+export type PropertySourceType = typeof PropertySources[number];
+export type SalesAgentRole = typeof SalesAgentRoles[number];

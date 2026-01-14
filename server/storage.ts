@@ -8,7 +8,9 @@ import type {
   Message, InsertMessage,
   MessageTemplate, InsertMessageTemplate,
   Activity, InsertActivity,
-  PropertyOffer, InsertPropertyOffer
+  PropertyOffer, InsertPropertyOffer,
+  RealEstateOffice, InsertRealEstateOffice,
+  SalesAgent, InsertSalesAgent
 } from "@shared/schema";
 
 export interface IStorage {
@@ -58,6 +60,19 @@ export interface IStorage {
   deletePropertyOffer(id: string): Promise<boolean>;
   getPropertyOffersByStatus(status: string): Promise<PropertyOffer[]>;
   
+  getOffices(): Promise<RealEstateOffice[]>;
+  getOffice(id: string): Promise<RealEstateOffice | undefined>;
+  createOffice(office: InsertRealEstateOffice): Promise<RealEstateOffice>;
+  updateOffice(id: string, office: Partial<InsertRealEstateOffice>): Promise<RealEstateOffice | undefined>;
+  deleteOffice(id: string): Promise<boolean>;
+  
+  getSalesAgents(): Promise<SalesAgent[]>;
+  getSalesAgent(id: string): Promise<SalesAgent | undefined>;
+  getSalesAgentsByOffice(officeId: string): Promise<SalesAgent[]>;
+  createSalesAgent(agent: InsertSalesAgent): Promise<SalesAgent>;
+  updateSalesAgent(id: string, agent: Partial<InsertSalesAgent>): Promise<SalesAgent | undefined>;
+  deleteSalesAgent(id: string): Promise<boolean>;
+  
   getDashboardStats(): Promise<{
     totalLeads: number;
     leadChange: number;
@@ -69,6 +84,9 @@ export interface IStorage {
     revenueChange: number;
     pendingOffers: number;
     offersChange: number;
+    totalOffices: number;
+    totalAgents: number;
+    totalProperties: number;
   }>;
   
   getLeadsBySource(): Promise<{ source: string; count: number }[]>;
@@ -103,6 +121,8 @@ export class MemStorage implements IStorage {
   private deals: Map<string, Deal> = new Map();
   private conversations: Map<string, Conversation> = new Map();
   private messages: Map<string, Message> = new Map();
+  private offices: Map<string, RealEstateOffice> = new Map();
+  private salesAgents: Map<string, SalesAgent> = new Map();
   private templates: Map<string, MessageTemplate> = new Map();
   private activities: Map<string, Activity> = new Map();
   private propertyOffers: Map<string, PropertyOffer> = new Map();
@@ -127,13 +147,27 @@ export class MemStorage implements IStorage {
     leads.forEach(lead => this.leads.set(lead.id, lead));
 
     const properties: Property[] = [
-      { id: "prop-1", title: "Luxury Marina View Apartment", titleAr: "شقة فاخرة بإطلالة على المارينا", description: "Stunning 3BR apartment with panoramic marina views", descriptionAr: null, type: "apartment", status: "available", price: "2500000", area: 2100, bedrooms: 3, bathrooms: 4, location: "Dubai Marina, Dubai", locationAr: "دبي مارينا، دبي", images: null, features: null, createdAt: oneWeekAgo },
-      { id: "prop-2", title: "Palm Jumeirah Villa", titleAr: "فيلا نخلة جميرا", description: "Exquisite beachfront villa with private pool", descriptionAr: null, type: "villa", status: "available", price: "12000000", area: 8500, bedrooms: 6, bathrooms: 8, location: "Palm Jumeirah, Dubai", locationAr: "نخلة جميرا، دبي", images: null, features: null, createdAt: twoWeeksAgo },
-      { id: "prop-3", title: "Downtown Penthouse", titleAr: "بنتهاوس وسط المدينة", description: "Iconic penthouse with Burj Khalifa views", descriptionAr: null, type: "penthouse", status: "reserved", price: "18500000", area: 6200, bedrooms: 5, bathrooms: 6, location: "Downtown Dubai", locationAr: "وسط دبي", images: null, features: null, createdAt: oneWeekAgo },
-      { id: "prop-4", title: "Business Bay Office", titleAr: "مكتب خليج الأعمال", description: "Modern office space in prime location", descriptionAr: null, type: "office", status: "available", price: "3200000", area: 3500, bedrooms: null, bathrooms: 2, location: "Business Bay, Dubai", locationAr: "خليج الأعمال، دبي", images: null, features: null, createdAt: now },
-      { id: "prop-5", title: "Arabian Ranches Townhouse", titleAr: "تاون هاوس المرابع العربية", description: "Family-friendly townhouse with garden", descriptionAr: null, type: "townhouse", status: "sold", price: "2800000", area: 3200, bedrooms: 4, bathrooms: 5, location: "Arabian Ranches, Dubai", locationAr: "المرابع العربية، دبي", images: null, features: null, createdAt: twoWeeksAgo },
+      { id: "prop-1", officeId: null, agentId: null, title: "Luxury Marina View Apartment", titleAr: "شقة فاخرة بإطلالة على المارينا", description: "Stunning 3BR apartment with panoramic marina views", descriptionAr: null, type: "apartment", status: "available", price: "2500000", area: 2100, bedrooms: 3, bathrooms: 4, location: "Dubai Marina, Dubai", locationAr: "دبي مارينا، دبي", images: null, primaryImageIndex: 0, features: null, propertySource: "developer", sourceDetails: null, createdAt: oneWeekAgo, updatedAt: oneWeekAgo },
+      { id: "prop-2", officeId: null, agentId: null, title: "Palm Jumeirah Villa", titleAr: "فيلا نخلة جميرا", description: "Exquisite beachfront villa with private pool", descriptionAr: null, type: "villa", status: "available", price: "12000000", area: 8500, bedrooms: 6, bathrooms: 8, location: "Palm Jumeirah, Dubai", locationAr: "نخلة جميرا، دبي", images: null, primaryImageIndex: 0, features: null, propertySource: "broker", sourceDetails: null, createdAt: twoWeeksAgo, updatedAt: twoWeeksAgo },
+      { id: "prop-3", officeId: null, agentId: null, title: "Downtown Penthouse", titleAr: "بنتهاوس وسط المدينة", description: "Iconic penthouse with Burj Khalifa views", descriptionAr: null, type: "penthouse", status: "reserved", price: "18500000", area: 6200, bedrooms: 5, bathrooms: 6, location: "Downtown Dubai", locationAr: "وسط دبي", images: null, primaryImageIndex: 0, features: null, propertySource: "developer", sourceDetails: null, createdAt: oneWeekAgo, updatedAt: oneWeekAgo },
+      { id: "prop-4", officeId: null, agentId: null, title: "Business Bay Office", titleAr: "مكتب خليج الأعمال", description: "Modern office space in prime location", descriptionAr: null, type: "office", status: "available", price: "3200000", area: 3500, bedrooms: null, bathrooms: 2, location: "Business Bay, Dubai", locationAr: "خليج الأعمال، دبي", images: null, primaryImageIndex: 0, features: null, propertySource: "direct_owner", sourceDetails: null, createdAt: now, updatedAt: now },
+      { id: "prop-5", officeId: null, agentId: null, title: "Arabian Ranches Townhouse", titleAr: "تاون هاوس المرابع العربية", description: "Family-friendly townhouse with garden", descriptionAr: null, type: "townhouse", status: "sold", price: "2800000", area: 3200, bedrooms: 4, bathrooms: 5, location: "Arabian Ranches, Dubai", locationAr: "المرابع العربية، دبي", images: null, primaryImageIndex: 0, features: null, propertySource: "marketing_campaign", sourceDetails: null, createdAt: twoWeeksAgo, updatedAt: twoWeeksAgo },
     ];
     properties.forEach(prop => this.properties.set(prop.id, prop));
+
+    const offices: RealEstateOffice[] = [
+      { id: "office-1", name: "Al Faisal Real Estate", nameAr: "الفيصل العقارية", logo: null, phone: "+966 11 456 7890", email: "info@alfaisal.sa", whatsapp: "+966 50 111 2222", address: "King Fahd Road, Riyadh", addressAr: "طريق الملك فهد، الرياض", city: "riyadh", licenseNumber: "FAL-RYD-001", description: "Leading real estate company in Riyadh", descriptionAr: "شركة عقارية رائدة في الرياض", isActive: true, createdAt: twoWeeksAgo, updatedAt: twoWeeksAgo },
+      { id: "office-2", name: "Jeddah Properties", nameAr: "عقارات جدة", logo: null, phone: "+966 12 345 6789", email: "contact@jeddahprop.sa", whatsapp: "+966 55 333 4444", address: "Tahlia Street, Jeddah", addressAr: "شارع التحلية، جدة", city: "jeddah", licenseNumber: "FAL-JED-002", description: "Premium properties in Jeddah", descriptionAr: "عقارات متميزة في جدة", isActive: true, createdAt: oneWeekAgo, updatedAt: oneWeekAgo },
+    ];
+    offices.forEach(office => this.offices.set(office.id, office));
+
+    const salesAgents: SalesAgent[] = [
+      { id: "agent-1", officeId: "office-1", name: "Ahmed Al-Qahtani", nameAr: "أحمد القحطاني", phone: "+966 50 123 4567", email: "ahmed@alfaisal.sa", role: "manager", avatar: null, isActive: true, propertiesCount: 12, dealsCount: 5, createdAt: twoWeeksAgo, updatedAt: twoWeeksAgo },
+      { id: "agent-2", officeId: "office-1", name: "Fatima Al-Harbi", nameAr: "فاطمة الحربي", phone: "+966 55 234 5678", email: "fatima@alfaisal.sa", role: "supervisor", avatar: null, isActive: true, propertiesCount: 8, dealsCount: 3, createdAt: oneWeekAgo, updatedAt: oneWeekAgo },
+      { id: "agent-3", officeId: "office-1", name: "Omar Al-Shehri", nameAr: "عمر الشهري", phone: "+966 54 345 6789", email: "omar@alfaisal.sa", role: "sales", avatar: null, isActive: true, propertiesCount: 5, dealsCount: 2, createdAt: oneWeekAgo, updatedAt: oneWeekAgo },
+      { id: "agent-4", officeId: "office-2", name: "Sara Al-Ghamdi", nameAr: "سارة الغامدي", phone: "+966 56 456 7890", email: "sara@jeddahprop.sa", role: "manager", avatar: null, isActive: true, propertiesCount: 15, dealsCount: 7, createdAt: twoWeeksAgo, updatedAt: twoWeeksAgo },
+    ];
+    salesAgents.forEach(agent => this.salesAgents.set(agent.id, agent));
 
     const deals: Deal[] = [
       { id: "deal-1", leadId: "lead-1", propertyId: "prop-1", stage: "negotiation", value: "2500000", probability: 70, expectedCloseDate: new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000), assignedTo: "user-1", notes: null, createdAt: oneWeekAgo, updatedAt: now },
@@ -268,7 +302,10 @@ export class MemStorage implements IStorage {
       ...insertProperty, 
       id, 
       createdAt: new Date(),
+      updatedAt: new Date(),
       status: insertProperty.status ?? "available",
+      officeId: insertProperty.officeId ?? null,
+      agentId: insertProperty.agentId ?? null,
       titleAr: insertProperty.titleAr ?? null,
       description: insertProperty.description ?? null,
       descriptionAr: insertProperty.descriptionAr ?? null,
@@ -277,7 +314,10 @@ export class MemStorage implements IStorage {
       bedrooms: insertProperty.bedrooms ?? null,
       bathrooms: insertProperty.bathrooms ?? null,
       images: insertProperty.images ?? null,
+      primaryImageIndex: insertProperty.primaryImageIndex ?? 0,
       features: insertProperty.features ?? null,
+      propertySource: insertProperty.propertySource ?? null,
+      sourceDetails: insertProperty.sourceDetails ?? null,
     };
     this.properties.set(id, property);
     
@@ -573,10 +613,118 @@ export class MemStorage implements IStorage {
     return offers.filter(o => o.reviewStatus === status);
   }
 
+  async getOffices(): Promise<RealEstateOffice[]> {
+    return Array.from(this.offices.values()).sort((a, b) => 
+      new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime()
+    );
+  }
+
+  async getOffice(id: string): Promise<RealEstateOffice | undefined> {
+    return this.offices.get(id);
+  }
+
+  async createOffice(office: InsertRealEstateOffice): Promise<RealEstateOffice> {
+    const id = randomUUID();
+    const newOffice: RealEstateOffice = {
+      ...office,
+      id,
+      logo: office.logo ?? null,
+      nameAr: office.nameAr ?? null,
+      email: office.email ?? null,
+      whatsapp: office.whatsapp ?? null,
+      address: office.address ?? null,
+      addressAr: office.addressAr ?? null,
+      city: office.city ?? null,
+      licenseNumber: office.licenseNumber ?? null,
+      description: office.description ?? null,
+      descriptionAr: office.descriptionAr ?? null,
+      isActive: office.isActive ?? true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.offices.set(id, newOffice);
+    await this.createActivity({
+      type: "office_created",
+      entityType: "office",
+      entityId: id,
+      description: `New office created: ${office.name}`,
+      descriptionAr: `تم إنشاء مكتب جديد: ${office.nameAr || office.name}`,
+    });
+    return newOffice;
+  }
+
+  async updateOffice(id: string, updates: Partial<InsertRealEstateOffice>): Promise<RealEstateOffice | undefined> {
+    const office = this.offices.get(id);
+    if (!office) return undefined;
+    const updated: RealEstateOffice = { ...office, ...updates, updatedAt: new Date() };
+    this.offices.set(id, updated);
+    return updated;
+  }
+
+  async deleteOffice(id: string): Promise<boolean> {
+    return this.offices.delete(id);
+  }
+
+  async getSalesAgents(): Promise<SalesAgent[]> {
+    return Array.from(this.salesAgents.values()).sort((a, b) =>
+      new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime()
+    );
+  }
+
+  async getSalesAgent(id: string): Promise<SalesAgent | undefined> {
+    return this.salesAgents.get(id);
+  }
+
+  async getSalesAgentsByOffice(officeId: string): Promise<SalesAgent[]> {
+    const agents = await this.getSalesAgents();
+    return agents.filter(a => a.officeId === officeId);
+  }
+
+  async createSalesAgent(agent: InsertSalesAgent): Promise<SalesAgent> {
+    const id = randomUUID();
+    const newAgent: SalesAgent = {
+      ...agent,
+      id,
+      nameAr: agent.nameAr ?? null,
+      email: agent.email ?? null,
+      role: agent.role ?? "sales",
+      avatar: agent.avatar ?? null,
+      isActive: agent.isActive ?? true,
+      propertiesCount: agent.propertiesCount ?? 0,
+      dealsCount: agent.dealsCount ?? 0,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.salesAgents.set(id, newAgent);
+    await this.createActivity({
+      type: "agent_created",
+      entityType: "sales_agent",
+      entityId: id,
+      description: `New sales agent added: ${agent.name}`,
+      descriptionAr: `تم إضافة سيلز جديد: ${agent.nameAr || agent.name}`,
+    });
+    return newAgent;
+  }
+
+  async updateSalesAgent(id: string, updates: Partial<InsertSalesAgent>): Promise<SalesAgent | undefined> {
+    const agent = this.salesAgents.get(id);
+    if (!agent) return undefined;
+    const updated: SalesAgent = { ...agent, ...updates, updatedAt: new Date() };
+    this.salesAgents.set(id, updated);
+    return updated;
+  }
+
+  async deleteSalesAgent(id: string): Promise<boolean> {
+    return this.salesAgents.delete(id);
+  }
+
   async getDashboardStats() {
     const leads = await this.getLeads();
     const deals = await this.getDeals();
     const offers = await this.getPropertyOffers();
+    const offices = await this.getOffices();
+    const agents = await this.getSalesAgents();
+    const properties = await this.getProperties();
     const pendingOffers = offers.filter(o => o.reviewStatus === "pending");
     const activeDeals = deals.filter(d => !d.stage.startsWith("closed"));
     const wonDeals = deals.filter(d => d.stage === "closed_won");
@@ -594,6 +742,9 @@ export class MemStorage implements IStorage {
       revenueChange: 15,
       pendingOffers: pendingOffers.length,
       offersChange: offers.length > 0 ? Math.round((pendingOffers.length / offers.length) * 100) : 0,
+      totalOffices: offices.length,
+      totalAgents: agents.length,
+      totalProperties: properties.length,
     };
   }
 

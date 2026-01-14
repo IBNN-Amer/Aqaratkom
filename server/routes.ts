@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertLeadSchema, insertPropertySchema, insertDealSchema, insertMessageTemplateSchema, insertMessageSchema, insertPropertyOfferSchema } from "@shared/schema";
+import { insertLeadSchema, insertPropertySchema, insertDealSchema, insertMessageTemplateSchema, insertMessageSchema, insertPropertyOfferSchema, insertRealEstateOfficeSchema, insertSalesAgentSchema } from "@shared/schema";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
 
@@ -406,6 +406,127 @@ export async function registerRoutes(
       res.status(204).send();
     } catch (error) {
       res.status(500).json({ error: "Failed to delete property offer" });
+    }
+  });
+
+  app.get("/api/offices", async (req, res) => {
+    try {
+      const offices = await storage.getOffices();
+      res.json(offices);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch offices" });
+    }
+  });
+
+  app.get("/api/offices/:id", async (req, res) => {
+    try {
+      const office = await storage.getOffice(req.params.id);
+      if (!office) {
+        return res.status(404).json({ error: "Office not found" });
+      }
+      res.json(office);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch office" });
+    }
+  });
+
+  app.post("/api/offices", async (req, res) => {
+    try {
+      const validated = validateBody(insertRealEstateOfficeSchema, req.body);
+      const office = await storage.createOffice(validated);
+      res.status(201).json(office);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to create office";
+      res.status(400).json({ error: message });
+    }
+  });
+
+  app.patch("/api/offices/:id", async (req, res) => {
+    try {
+      const partialSchema = insertRealEstateOfficeSchema.partial();
+      const validated = validateBody(partialSchema, req.body);
+      const office = await storage.updateOffice(req.params.id, validated);
+      if (!office) {
+        return res.status(404).json({ error: "Office not found" });
+      }
+      res.json(office);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to update office";
+      res.status(400).json({ error: message });
+    }
+  });
+
+  app.delete("/api/offices/:id", async (req, res) => {
+    try {
+      const deleted = await storage.deleteOffice(req.params.id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Office not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete office" });
+    }
+  });
+
+  app.get("/api/sales-agents", async (req, res) => {
+    try {
+      const officeId = req.query.officeId as string | undefined;
+      const agents = officeId
+        ? await storage.getSalesAgentsByOffice(officeId)
+        : await storage.getSalesAgents();
+      res.json(agents);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch sales agents" });
+    }
+  });
+
+  app.get("/api/sales-agents/:id", async (req, res) => {
+    try {
+      const agent = await storage.getSalesAgent(req.params.id);
+      if (!agent) {
+        return res.status(404).json({ error: "Sales agent not found" });
+      }
+      res.json(agent);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch sales agent" });
+    }
+  });
+
+  app.post("/api/sales-agents", async (req, res) => {
+    try {
+      const validated = validateBody(insertSalesAgentSchema, req.body);
+      const agent = await storage.createSalesAgent(validated);
+      res.status(201).json(agent);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to create sales agent";
+      res.status(400).json({ error: message });
+    }
+  });
+
+  app.patch("/api/sales-agents/:id", async (req, res) => {
+    try {
+      const partialSchema = insertSalesAgentSchema.partial();
+      const validated = validateBody(partialSchema, req.body);
+      const agent = await storage.updateSalesAgent(req.params.id, validated);
+      if (!agent) {
+        return res.status(404).json({ error: "Sales agent not found" });
+      }
+      res.json(agent);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to update sales agent";
+      res.status(400).json({ error: message });
+    }
+  });
+
+  app.delete("/api/sales-agents/:id", async (req, res) => {
+    try {
+      const deleted = await storage.deleteSalesAgent(req.params.id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Sales agent not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete sales agent" });
     }
   });
 
