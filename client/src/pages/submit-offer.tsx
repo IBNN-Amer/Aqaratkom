@@ -1,3 +1,4 @@
+import { useState, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
@@ -12,7 +13,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Building2, Send, ArrowRight, ArrowLeft } from "lucide-react";
+import { Building2, Send, ArrowRight, ArrowLeft, ImagePlus, X, Upload } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const offerFormSchema = z.object({
   city: z.string().min(1, "City is required"),
@@ -55,6 +57,9 @@ export default function SubmitOffer() {
   const { t, language, direction } = useI18n();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
+  const [images, setImages] = useState<string[]>([]);
+  const [primaryImageIndex, setPrimaryImageIndex] = useState(0);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const form = useForm<OfferFormValues>({
     resolver: zodResolver(offerFormSchema),
@@ -79,6 +84,46 @@ export default function SubmitOffer() {
     },
   });
 
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+
+    Array.from(files).forEach((file) => {
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: language === "ar" ? "الصورة كبيرة جداً" : "Image too large",
+          description: language === "ar" ? "الحد الأقصى 5 ميجابايت" : "Maximum 5MB per image",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const result = event.target?.result as string;
+        setImages((prev) => [...prev, result]);
+      };
+      reader.readAsDataURL(file);
+    });
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const removeImage = (index: number) => {
+    setImages((prev) => prev.filter((_, i) => i !== index));
+    if (primaryImageIndex === index) {
+      setPrimaryImageIndex(0);
+    } else if (primaryImageIndex > index) {
+      setPrimaryImageIndex(primaryImageIndex - 1);
+    }
+  };
+
+  const setPrimaryImage = (index: number) => {
+    setPrimaryImageIndex(index);
+  };
+
   const submitMutation = useMutation({
     mutationFn: async (data: OfferFormValues) => {
       const selectedCity = saudiCities.find((c) => c.value === data.city);
@@ -86,6 +131,8 @@ export default function SubmitOffer() {
         ...data,
         cityAr: selectedCity?.labelAr,
         brokerEmail: data.brokerEmail || undefined,
+        images: images.length > 0 ? images : null,
+        primaryImageIndex,
       });
     },
     onSuccess: () => {
@@ -100,14 +147,24 @@ export default function SubmitOffer() {
     },
     onError: () => {
       toast({
-        title: "Error",
-        description: "Failed to submit offer",
+        title: language === "ar" ? "خطأ" : "Error",
+        description: language === "ar" ? "فشل في إرسال العرض" : "Failed to submit offer",
         variant: "destructive",
       });
     },
   });
 
   const onSubmit = (data: OfferFormValues) => {
+    if (images.length === 0) {
+      toast({
+        title: language === "ar" ? "الصور مطلوبة" : "Images required",
+        description: language === "ar" 
+          ? "يرجى إضافة صورة واحدة على الأقل للعقار" 
+          : "Please add at least one property image",
+        variant: "destructive",
+      });
+      return;
+    }
     submitMutation.mutate(data);
   };
 
@@ -134,6 +191,85 @@ export default function SubmitOffer() {
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <div className="border rounded-lg p-4 bg-muted/30">
+                <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                  <ImagePlus className="h-5 w-5" />
+                  {language === "ar" ? "صور العقار" : "Property Images"}
+                  <span className="text-destructive">*</span>
+                </h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  {language === "ar" 
+                    ? "أضف صوراً للعقار (مطلوب صورة واحدة على الأقل). الحد الأقصى 5 ميجابايت لكل صورة."
+                    : "Add property images (at least one required). Maximum 5MB per image."}
+                </p>
+                
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mb-4">
+                  {images.map((image, index) => (
+                    <div 
+                      key={index} 
+                      className={cn(
+                        "relative aspect-square rounded-lg overflow-hidden border-2 cursor-pointer group",
+                        primaryImageIndex === index ? "border-primary" : "border-transparent"
+                      )}
+                      onClick={() => setPrimaryImage(index)}
+                      data-testid={`image-preview-${index}`}
+                    >
+                      <img 
+                        src={image} 
+                        alt={`Property ${index + 1}`} 
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeImage(index);
+                          }}
+                          data-testid={`button-remove-image-${index}`}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      {primaryImageIndex === index && (
+                        <div className="absolute top-1 left-1 bg-primary text-primary-foreground text-xs px-2 py-0.5 rounded">
+                          {language === "ar" ? "رئيسية" : "Primary"}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  
+                  <label 
+                    className="aspect-square rounded-lg border-2 border-dashed border-muted-foreground/30 flex flex-col items-center justify-center cursor-pointer hover:border-primary hover:bg-muted/50 transition-colors"
+                    data-testid="button-add-image"
+                  >
+                    <Upload className="h-8 w-8 text-muted-foreground mb-2" />
+                    <span className="text-sm text-muted-foreground">
+                      {language === "ar" ? "إضافة صورة" : "Add Image"}
+                    </span>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="hidden"
+                      onChange={handleImageUpload}
+                    />
+                  </label>
+                </div>
+                
+                {images.length > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    {language === "ar" 
+                      ? "انقر على صورة لتعيينها كصورة رئيسية"
+                      : "Click on an image to set it as primary"}
+                  </p>
+                )}
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
@@ -226,7 +362,7 @@ export default function SubmitOffer() {
                     <FormItem>
                       <FormLabel>{t("offers.price")} (SAR)</FormLabel>
                       <FormControl>
-                        <Input type="number" {...field} data-testid="input-price" />
+                        <Input type="number" {...field} dir="ltr" data-testid="input-price" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -238,9 +374,9 @@ export default function SubmitOffer() {
                   name="area"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>{t("offers.area")}</FormLabel>
+                      <FormLabel>{t("offers.area")} (م²)</FormLabel>
                       <FormControl>
-                        <Input type="number" {...field} data-testid="input-area" />
+                        <Input type="number" {...field} dir="ltr" data-testid="input-area" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -254,7 +390,7 @@ export default function SubmitOffer() {
                     <FormItem>
                       <FormLabel>{t("offers.bedrooms")}</FormLabel>
                       <FormControl>
-                        <Input type="number" {...field} data-testid="input-bedrooms" />
+                        <Input type="number" {...field} dir="ltr" data-testid="input-bedrooms" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -268,7 +404,7 @@ export default function SubmitOffer() {
                     <FormItem>
                       <FormLabel>{t("offers.bathrooms")}</FormLabel>
                       <FormControl>
-                        <Input type="number" {...field} data-testid="input-bathrooms" />
+                        <Input type="number" {...field} dir="ltr" data-testid="input-bathrooms" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -305,7 +441,7 @@ export default function SubmitOffer() {
                     <FormItem>
                       <FormLabel>{t("offers.falLicense")}</FormLabel>
                       <FormControl>
-                        <Input {...field} dir="ltr" data-testid="input-fal" />
+                        <Input {...field} dir="ltr" placeholder="FAL-XXXXX" data-testid="input-fal" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -339,7 +475,7 @@ export default function SubmitOffer() {
                       <FormItem>
                         <FormLabel>{t("offers.brokerPhone")}</FormLabel>
                         <FormControl>
-                          <Input {...field} dir="ltr" type="tel" data-testid="input-broker-phone" />
+                          <Input {...field} dir="ltr" type="tel" placeholder="+966 5X XXX XXXX" data-testid="input-broker-phone" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
