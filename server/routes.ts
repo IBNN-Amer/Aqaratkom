@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertLeadSchema, insertPropertySchema, insertDealSchema, insertMessageTemplateSchema, insertMessageSchema } from "@shared/schema";
+import { insertLeadSchema, insertPropertySchema, insertDealSchema, insertMessageTemplateSchema, insertMessageSchema, insertPropertyOfferSchema } from "@shared/schema";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
 
@@ -344,6 +344,68 @@ export async function registerRoutes(
       res.json(performance);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch source performance" });
+    }
+  });
+
+  app.get("/api/property-offers", async (req, res) => {
+    try {
+      const status = req.query.status as string | undefined;
+      const offers = status 
+        ? await storage.getPropertyOffersByStatus(status)
+        : await storage.getPropertyOffers();
+      res.json(offers);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch property offers" });
+    }
+  });
+
+  app.get("/api/property-offers/:id", async (req, res) => {
+    try {
+      const offer = await storage.getPropertyOffer(req.params.id);
+      if (!offer) {
+        return res.status(404).json({ error: "Property offer not found" });
+      }
+      res.json(offer);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch property offer" });
+    }
+  });
+
+  app.post("/api/property-offers", async (req, res) => {
+    try {
+      const validated = validateBody(insertPropertyOfferSchema, req.body);
+      const offer = await storage.createPropertyOffer(validated);
+      res.status(201).json(offer);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to create property offer";
+      res.status(400).json({ error: message });
+    }
+  });
+
+  app.patch("/api/property-offers/:id", async (req, res) => {
+    try {
+      const partialSchema = insertPropertyOfferSchema.partial();
+      const validated = validateBody(partialSchema, req.body);
+      const offer = await storage.updatePropertyOffer(req.params.id, validated);
+      if (!offer) {
+        return res.status(404).json({ error: "Property offer not found" });
+      }
+      res.json(offer);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to update property offer";
+      res.status(400).json({ error: message });
+    }
+  });
+
+  app.delete("/api/property-offers/:id", async (req, res) => {
+    try {
+      const deleted = await storage.deletePropertyOffer(req.params.id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Property offer not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete property offer" });
     }
   });
 

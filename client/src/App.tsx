@@ -16,6 +16,8 @@ import WhatsApp from "@/pages/whatsapp";
 import Analytics from "@/pages/analytics";
 import Templates from "@/pages/templates";
 import Settings from "@/pages/settings";
+import Offers from "@/pages/offers";
+import SubmitOffer from "@/pages/submit-offer";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -29,6 +31,8 @@ function Router() {
       <Route path="/analytics" component={Analytics} />
       <Route path="/templates" component={Templates} />
       <Route path="/settings" component={Settings} />
+      <Route path="/offers" component={Offers} />
+      <Route path="/submit-offer" component={SubmitOffer} />
       <Route component={NotFound} />
     </Switch>
   );

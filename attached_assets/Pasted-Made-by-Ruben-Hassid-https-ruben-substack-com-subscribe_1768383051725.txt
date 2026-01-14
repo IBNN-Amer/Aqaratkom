@@ -1,0 +1,67 @@
+Made by [Ruben Hassid](https://ruben.substack.com/subscribe)
+
+```text
+Act like a senior SaaS product manager, PropTech strategist, and real estate domain expert specialized specifically in the Saudi Arabian real estate market (KSA), including brokers, developers, and regulatory requirements.
+
+Your goal is to design and define a core SaaS feature for the project “عقارك” that enables receiving real estate offers from brokers and developers in Saudi Arabia, with an extremely simple and efficient process for uploading and managing property images, fully aligned with the Saudi market.
+
+Task:
+Create a detailed, Saudi-market–specific feature specification for receiving real estate offers (من الوسطاء العقاريين والمطورين) with easy property data entry and image uploads inside a B2B SaaS platform.
+
+Requirements:
+1) Define the target users in the Saudi market (وسطاء معتمدين، مطورين عقاريين، شركات تسويق عقاري) and their real operational challenges.
+2) Describe the offer submission flow step-by-step:
+   - تسجيل الدخول / التحقق
+   - إضافة عرض عقاري جديد
+   - إدخال بيانات العقار
+   - رفع الصور
+   - إرسال العرض للمراجعة
+3) Specify mandatory property fields aligned with the Saudi market:
+   - المدينة / الحي
+   - نوع العقار (سكني، تجاري، استثماري)
+   - السعر (بيع / إيجار)
+   - المساحة
+   - رقم رخصة فال (إن وجد)
+   - اسم المطور أو الوسيط
+   - حالة العقار (جاهز، تحت الإنشاء)
+4) Explain the image upload experience in detail:
+   - دعم الرفع من الجوال (أساسي للسوق السعودي)
+   - رفع صور متعددة دفعة واحدة
+   - السحب والإفلات
+   - ترتيب الصور وتحديد الصورة الرئيسية
+   - حذف واستبدال الصور بسهولة
+5) Describe the review and approval workflow:
+   - مراجعة داخلية
+   - قبول / رفض / طلب تعديل
+   - تسجيل الحالة داخل الـ CRM
+6) Define roles and permissions:
+   - من يرفع العروض
+   - من يراجع ويعتمد
+   - من ينشر العروض
+7) Explain how approved offers integrate with the SaaS ecosystem:
+   - الظهور في لوحة التحكم
+   - الإرسال عبر واتس اب للعملاء
+   - الاستخدام في الحملات التسويقية
+8) Propose automations suitable for Saudi users:
+   - إشعار واتس اب عند استلام العرض
+   - رسالة تأكيد للوسيط أو المطور
+   - تحديثات حالة العرض تلقائيًا
+9) Define success metrics relevant to KSA:
+   - عدد العروض المستلمة
+   - سرعة اعتماد العروض
+   - اكتمال الصور
+   - معدل استخدام الجوال
+
+Context:
+“عقارك” هو نظام SaaS مخصص للسوق السعودي لإدارة التسويق العقاري والـ CRM مع تكامل واتس اب. الهدف هو تنظيم استقبال العروض العقارية بدل الاعتماد على المحادثات العشوائية والصور غير المنظمة عبر واتس اب.
+
+Constraints:
+- Language: العربية (واضحة، رسمية، مناسبة للسوق السعودي).
+- Format: أقسام واضحة ونقاط مختصرة.
+- Style: احترافي، عملي، وموجه لسوق SaaS.
+- Scope: تعريف الميزة فقط (بدون كود).
+- Reasoning: التفكير خطوة بخطوة من سلوك المستخدم إلى منطق النظام.
+- Self-check: التأكد أن الميزة مناسبة للسوق السعودي وقابلة للتوسع SaaS.
+
+Take a deep breath and work on this problem step-by-step.
+```

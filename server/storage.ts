@@ -7,7 +7,8 @@ import type {
   Conversation, InsertConversation,
   Message, InsertMessage,
   MessageTemplate, InsertMessageTemplate,
-  Activity, InsertActivity
+  Activity, InsertActivity,
+  PropertyOffer, InsertPropertyOffer
 } from "@shared/schema";
 
 export interface IStorage {
@@ -50,6 +51,13 @@ export interface IStorage {
   getActivities(): Promise<Activity[]>;
   createActivity(activity: InsertActivity): Promise<Activity>;
   
+  getPropertyOffers(): Promise<PropertyOffer[]>;
+  getPropertyOffer(id: string): Promise<PropertyOffer | undefined>;
+  createPropertyOffer(offer: InsertPropertyOffer): Promise<PropertyOffer>;
+  updatePropertyOffer(id: string, offer: Partial<InsertPropertyOffer>): Promise<PropertyOffer | undefined>;
+  deletePropertyOffer(id: string): Promise<boolean>;
+  getPropertyOffersByStatus(status: string): Promise<PropertyOffer[]>;
+  
   getDashboardStats(): Promise<{
     totalLeads: number;
     leadChange: number;
@@ -59,6 +67,8 @@ export interface IStorage {
     conversionChange: number;
     revenue: number;
     revenueChange: number;
+    pendingOffers: number;
+    offersChange: number;
   }>;
   
   getLeadsBySource(): Promise<{ source: string; count: number }[]>;
@@ -95,6 +105,7 @@ export class MemStorage implements IStorage {
   private messages: Map<string, Message> = new Map();
   private templates: Map<string, MessageTemplate> = new Map();
   private activities: Map<string, Activity> = new Map();
+  private propertyOffers: Map<string, PropertyOffer> = new Map();
 
   constructor() {
     this.seedData();
@@ -162,6 +173,13 @@ export class MemStorage implements IStorage {
       { id: "act-5", type: "property_created", entityType: "property", entityId: "prop-4", userId: "user-1", description: "New property listed: Business Bay Office", descriptionAr: null, metadata: null, createdAt: now },
     ];
     activities.forEach(act => this.activities.set(act.id, act));
+
+    const propertyOffers: PropertyOffer[] = [
+      { id: "offer-1", city: "riyadh", cityAr: "الرياض", district: "Al Olaya", districtAr: "العليا", propertyType: "residential", listingType: "sale", price: "2500000", area: 280, bedrooms: 4, bathrooms: 3, falLicenseNumber: "FAL-12345", brokerName: "محمد العتيبي", brokerPhone: "+966 50 123 4567", brokerEmail: "m.otaibi@broker.sa", developerName: null, propertyCondition: "ready", description: "Luxury apartment with city view", descriptionAr: "شقة فاخرة بإطلالة على المدينة", images: null, primaryImageIndex: 0, reviewStatus: "pending", reviewNotes: null, reviewedBy: null, reviewedAt: null, submittedBy: null, createdAt: now, updatedAt: now },
+      { id: "offer-2", city: "jeddah", cityAr: "جدة", district: "Al Hamra", districtAr: "الحمراء", propertyType: "commercial", listingType: "rent", price: "180000", area: 450, bedrooms: null, bathrooms: 2, falLicenseNumber: "FAL-67890", brokerName: "سارة الغامدي", brokerPhone: "+966 55 987 6543", brokerEmail: "sara.g@realestate.sa", developerName: "شركة دار الأركان", propertyCondition: "ready", description: "Prime office space", descriptionAr: "مساحة مكتبية متميزة", images: null, primaryImageIndex: 0, reviewStatus: "approved", reviewNotes: null, reviewedBy: "user-1", reviewedAt: oneWeekAgo, submittedBy: null, createdAt: oneWeekAgo, updatedAt: oneWeekAgo },
+      { id: "offer-3", city: "riyadh", cityAr: "الرياض", district: "Al Malqa", districtAr: "الملقا", propertyType: "residential", listingType: "sale", price: "4500000", area: 520, bedrooms: 6, bathrooms: 5, falLicenseNumber: null, brokerName: "خالد السبيعي", brokerPhone: "+966 54 555 1234", brokerEmail: null, developerName: "روشن", propertyCondition: "under_construction", description: "Modern villa in premium location", descriptionAr: "فيلا عصرية في موقع مميز", images: null, primaryImageIndex: 0, reviewStatus: "needs_revision", reviewNotes: "Please add FAL license number", reviewedBy: "user-1", reviewedAt: now, submittedBy: null, createdAt: twoWeeksAgo, updatedAt: now },
+    ];
+    propertyOffers.forEach(offer => this.propertyOffers.set(offer.id, offer));
   }
 
   async getUser(id: string): Promise<User | undefined> {
@@ -174,7 +192,12 @@ export class MemStorage implements IStorage {
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = randomUUID();
-    const user: User = { ...insertUser, id };
+    const user: User = { 
+      ...insertUser, 
+      id,
+      role: insertUser.role ?? "agent",
+      avatar: insertUser.avatar ?? null,
+    };
     this.users.set(id, user);
     return user;
   }
@@ -197,6 +220,7 @@ export class MemStorage implements IStorage {
       createdAt: new Date(),
       lastContactAt: null,
       score: insertLead.score ?? 0,
+      status: insertLead.status ?? "new",
       assignedTo: insertLead.assignedTo ?? null,
       notes: insertLead.notes ?? null,
       tags: insertLead.tags ?? null,
@@ -244,6 +268,7 @@ export class MemStorage implements IStorage {
       ...insertProperty, 
       id, 
       createdAt: new Date(),
+      status: insertProperty.status ?? "available",
       titleAr: insertProperty.titleAr ?? null,
       description: insertProperty.description ?? null,
       descriptionAr: insertProperty.descriptionAr ?? null,
@@ -295,6 +320,7 @@ export class MemStorage implements IStorage {
       id, 
       createdAt: new Date(),
       updatedAt: new Date(),
+      stage: insertDeal.stage ?? "qualified",
       propertyId: insertDeal.propertyId ?? null,
       value: insertDeal.value ?? null,
       probability: insertDeal.probability ?? 20,
@@ -366,6 +392,7 @@ export class MemStorage implements IStorage {
       id, 
       createdAt: new Date(),
       lastMessageAt: new Date(),
+      status: insertConversation.status ?? "open",
       assignedTo: insertConversation.assignedTo ?? null,
       unreadCount: insertConversation.unreadCount ?? 0,
     };
@@ -466,9 +493,91 @@ export class MemStorage implements IStorage {
     return activity;
   }
 
+  async getPropertyOffers(): Promise<PropertyOffer[]> {
+    return Array.from(this.propertyOffers.values()).sort((a, b) => 
+      new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+    );
+  }
+
+  async getPropertyOffer(id: string): Promise<PropertyOffer | undefined> {
+    return this.propertyOffers.get(id);
+  }
+
+  async createPropertyOffer(insertOffer: InsertPropertyOffer): Promise<PropertyOffer> {
+    const id = randomUUID();
+    const offer: PropertyOffer = {
+      ...insertOffer,
+      id,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      reviewedAt: null,
+      cityAr: insertOffer.cityAr ?? null,
+      districtAr: insertOffer.districtAr ?? null,
+      bedrooms: insertOffer.bedrooms ?? null,
+      bathrooms: insertOffer.bathrooms ?? null,
+      falLicenseNumber: insertOffer.falLicenseNumber ?? null,
+      brokerEmail: insertOffer.brokerEmail ?? null,
+      developerName: insertOffer.developerName ?? null,
+      description: insertOffer.description ?? null,
+      descriptionAr: insertOffer.descriptionAr ?? null,
+      images: insertOffer.images ?? null,
+      primaryImageIndex: insertOffer.primaryImageIndex ?? 0,
+      reviewStatus: insertOffer.reviewStatus ?? "pending",
+      reviewNotes: insertOffer.reviewNotes ?? null,
+      reviewedBy: insertOffer.reviewedBy ?? null,
+      submittedBy: insertOffer.submittedBy ?? null,
+    };
+    this.propertyOffers.set(id, offer);
+    
+    await this.createActivity({
+      type: "offer_submitted",
+      entityType: "property_offer",
+      entityId: id,
+      description: `New property offer submitted by ${offer.brokerName}`,
+      descriptionAr: `تم استلام عرض عقاري جديد من ${offer.brokerName}`,
+    });
+    
+    return offer;
+  }
+
+  async updatePropertyOffer(id: string, updates: Partial<InsertPropertyOffer>): Promise<PropertyOffer | undefined> {
+    const offer = this.propertyOffers.get(id);
+    if (!offer) return undefined;
+    const updated: PropertyOffer = { 
+      ...offer, 
+      ...updates, 
+      updatedAt: new Date(),
+      reviewedAt: updates.reviewStatus && updates.reviewStatus !== offer.reviewStatus ? new Date() : offer.reviewedAt,
+    };
+    this.propertyOffers.set(id, updated);
+    
+    if (updates.reviewStatus && updates.reviewStatus !== offer.reviewStatus) {
+      await this.createActivity({
+        type: "offer_reviewed",
+        entityType: "property_offer",
+        entityId: id,
+        description: `Property offer status changed to ${updates.reviewStatus}`,
+        descriptionAr: `تم تغيير حالة العرض إلى ${updates.reviewStatus}`,
+      });
+    }
+    
+    return updated;
+  }
+
+  async deletePropertyOffer(id: string): Promise<boolean> {
+    return this.propertyOffers.delete(id);
+  }
+
+  async getPropertyOffersByStatus(status: string): Promise<PropertyOffer[]> {
+    const offers = await this.getPropertyOffers();
+    return offers.filter(o => o.reviewStatus === status);
+  }
+
   async getDashboardStats() {
     const leads = await this.getLeads();
     const deals = await this.getDeals();
+    const offers = await this.getPropertyOffers();
+    const pendingOffers = offers.filter(o => o.reviewStatus === "pending");
     const activeDeals = deals.filter(d => !d.stage.startsWith("closed"));
     const wonDeals = deals.filter(d => d.stage === "closed_won");
     const revenue = wonDeals.reduce((sum, d) => sum + parseFloat(d.value?.toString() || "0"), 0);
@@ -483,6 +592,8 @@ export class MemStorage implements IStorage {
       conversionChange: 5,
       revenue,
       revenueChange: 15,
+      pendingOffers: pendingOffers.length,
+      offersChange: offers.length > 0 ? Math.round((pendingOffers.length / offers.length) * 100) : 0,
     };
   }
 

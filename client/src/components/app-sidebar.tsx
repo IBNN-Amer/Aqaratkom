@@ -9,7 +9,9 @@ import {
   FileText,
   Settings,
   ChevronDown,
-  LogOut
+  LogOut,
+  ClipboardList,
+  PlusCircle
 } from "lucide-react";
 import {
   Sidebar,
@@ -38,6 +40,11 @@ const mainNavItems = [
   { icon: Building2, labelKey: "nav.properties", href: "/properties" },
   { icon: Handshake, labelKey: "nav.deals", href: "/deals" },
   { icon: MessageCircle, labelKey: "nav.whatsapp", href: "/whatsapp" },
+];
+
+const offersNavItems = [
+  { icon: ClipboardList, labelKey: "nav.offers", href: "/offers" },
+  { icon: PlusCircle, labelKey: "nav.submitOffer", href: "/submit-offer" },
 ];
 
 const secondaryNavItems = [
@@ -74,6 +81,33 @@ export function AppSidebar() {
               {mainNavItems.map((item) => {
                 const isActive = location === item.href || 
                   (item.href !== "/" && location.startsWith(item.href));
+                return (
+                  <SidebarMenuItem key={item.href}>
+                    <SidebarMenuButton 
+                      asChild 
+                      isActive={isActive}
+                      data-testid={`nav-${item.labelKey.split('.')[1]}`}
+                    >
+                      <Link href={item.href}>
+                        <item.icon className="h-5 w-5" />
+                        <span>{t(item.labelKey)}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel className="text-xs font-medium text-muted-foreground px-4">
+            {t("offers.title")}
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {offersNavItems.map((item) => {
+                const isActive = location === item.href;
                 return (
                   <SidebarMenuItem key={item.href}>
                     <SidebarMenuButton 

@@ -5,7 +5,8 @@ import {
   TrendingUp, 
   DollarSign,
   Building2,
-  MessageCircle 
+  MessageCircle,
+  ClipboardList
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -38,6 +39,8 @@ interface DashboardStats {
   conversionChange: number;
   revenue: number;
   revenueChange: number;
+  pendingOffers: number;
+  offersChange: number;
 }
 
 interface LeadsBySource {
@@ -101,9 +104,10 @@ export default function Dashboard() {
         <p className="text-muted-foreground mt-1">{t("dashboard.welcome")}</p>
       </div>
 
-      <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-5">
         {statsLoading ? (
           <>
+            <KpiCardSkeleton />
             <KpiCardSkeleton />
             <KpiCardSkeleton />
             <KpiCardSkeleton />
@@ -128,6 +132,14 @@ export default function Dashboard() {
               testId="kpi-active-deals"
             />
             <KpiCard
+              title={t("dashboard.pendingOffers")}
+              value={stats?.pendingOffers || 0}
+              change={stats?.offersChange}
+              changeLabel="of total offers"
+              icon={ClipboardList}
+              testId="kpi-pending-offers"
+            />
+            <KpiCard
               title={t("dashboard.conversionRate")}
               value={`${stats?.conversionRate || 0}%`}
               change={stats?.conversionChange}
@@ -137,7 +149,7 @@ export default function Dashboard() {
             />
             <KpiCard
               title={t("dashboard.revenue")}
-              value={`AED ${formatCurrency(stats?.revenue || 0)}`}
+              value={`SAR ${formatCurrency(stats?.revenue || 0)}`}
               change={stats?.revenueChange}
               changeLabel="vs last month"
               icon={DollarSign}

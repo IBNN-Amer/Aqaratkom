@@ -107,6 +107,37 @@ export const activities = pgTable("activities", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const propertyOffers = pgTable("property_offers", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  city: text("city").notNull(),
+  cityAr: text("city_ar"),
+  district: text("district").notNull(),
+  districtAr: text("district_ar"),
+  propertyType: text("property_type").notNull(),
+  listingType: text("listing_type").notNull(),
+  price: decimal("price", { precision: 12, scale: 2 }).notNull(),
+  area: integer("area").notNull(),
+  bedrooms: integer("bedrooms"),
+  bathrooms: integer("bathrooms"),
+  falLicenseNumber: text("fal_license_number"),
+  brokerName: text("broker_name").notNull(),
+  brokerPhone: text("broker_phone").notNull(),
+  brokerEmail: text("broker_email"),
+  developerName: text("developer_name"),
+  propertyCondition: text("property_condition").notNull(),
+  description: text("description"),
+  descriptionAr: text("description_ar"),
+  images: text("images").array(),
+  primaryImageIndex: integer("primary_image_index").default(0),
+  reviewStatus: text("review_status").notNull().default("pending"),
+  reviewNotes: text("review_notes"),
+  reviewedBy: varchar("reviewed_by"),
+  reviewedAt: timestamp("reviewed_at"),
+  submittedBy: varchar("submitted_by"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 export const insertUserSchema = createInsertSchema(users).omit({ id: true });
 export const insertLeadSchema = createInsertSchema(leads).omit({ id: true, createdAt: true });
 export const insertPropertySchema = createInsertSchema(properties).omit({ id: true, createdAt: true });
@@ -115,6 +146,7 @@ export const insertConversationSchema = createInsertSchema(conversations).omit({
 export const insertMessageSchema = createInsertSchema(messages).omit({ id: true, createdAt: true });
 export const insertMessageTemplateSchema = createInsertSchema(messageTemplates).omit({ id: true, createdAt: true });
 export const insertActivitySchema = createInsertSchema(activities).omit({ id: true, createdAt: true });
+export const insertPropertyOfferSchema = createInsertSchema(propertyOffers).omit({ id: true, createdAt: true, updatedAt: true, reviewedAt: true });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -132,6 +164,8 @@ export type InsertMessageTemplate = z.infer<typeof insertMessageTemplateSchema>;
 export type MessageTemplate = typeof messageTemplates.$inferSelect;
 export type InsertActivity = z.infer<typeof insertActivitySchema>;
 export type Activity = typeof activities.$inferSelect;
+export type InsertPropertyOffer = z.infer<typeof insertPropertyOfferSchema>;
+export type PropertyOffer = typeof propertyOffers.$inferSelect;
 
 export const LeadSources = ["facebook", "instagram", "website", "whatsapp", "referral", "phone", "walk_in"] as const;
 export const LeadStatuses = ["new", "contacted", "qualified", "negotiating", "won", "lost"] as const;
@@ -139,8 +173,19 @@ export const PropertyTypes = ["apartment", "villa", "townhouse", "penthouse", "o
 export const PropertyStatuses = ["available", "reserved", "sold", "rented"] as const;
 export const DealStages = ["qualified", "proposal", "negotiation", "contract", "closed_won", "closed_lost"] as const;
 
+export const SaudiCities = ["riyadh", "jeddah", "makkah", "madinah", "dammam", "khobar", "dhahran", "tabuk", "abha", "taif", "jubail", "yanbu"] as const;
+export const OfferPropertyTypes = ["residential", "commercial", "investment"] as const;
+export const ListingTypes = ["sale", "rent"] as const;
+export const PropertyConditions = ["ready", "under_construction", "off_plan"] as const;
+export const OfferReviewStatuses = ["pending", "approved", "rejected", "needs_revision"] as const;
+
 export type LeadSource = typeof LeadSources[number];
 export type LeadStatus = typeof LeadStatuses[number];
 export type PropertyType = typeof PropertyTypes[number];
 export type PropertyStatus = typeof PropertyStatuses[number];
 export type DealStage = typeof DealStages[number];
+export type SaudiCity = typeof SaudiCities[number];
+export type OfferPropertyType = typeof OfferPropertyTypes[number];
+export type ListingType = typeof ListingTypes[number];
+export type PropertyCondition = typeof PropertyConditions[number];
+export type OfferReviewStatus = typeof OfferReviewStatuses[number];
