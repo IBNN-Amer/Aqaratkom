@@ -1,0 +1,94 @@
+# PropFlow CRM - Real Estate Marketing Platform
+
+## Overview
+
+PropFlow CRM is a real estate marketing and customer relationship management platform with integrated WhatsApp messaging capabilities. The application is designed for real estate companies in the Middle East, supporting both English and Arabic languages with RTL layout support. It provides lead management, property listings, deal pipeline tracking, WhatsApp conversation management, and analytics dashboards.
+
+## User Preferences
+
+Preferred communication style: Simple, everyday language.
+
+## System Architecture
+
+### Frontend Architecture
+- **Framework**: React with TypeScript, using Vite as the build tool
+- **Routing**: Wouter for lightweight client-side routing
+- **State Management**: TanStack React Query for server state and data fetching
+- **UI Components**: shadcn/ui component library built on Radix UI primitives
+- **Styling**: Tailwind CSS with CSS variables for theming (light/dark mode support)
+- **Form Handling**: React Hook Form with Zod validation
+- **Charts**: Recharts for analytics visualizations
+
+### Backend Architecture
+- **Runtime**: Node.js with Express.js
+- **Language**: TypeScript with ESM modules
+- **API Style**: RESTful JSON API endpoints under `/api/*`
+- **Development Server**: Vite dev server with HMR proxied through Express
+
+### Data Layer
+- **ORM**: Drizzle ORM with PostgreSQL dialect
+- **Schema Location**: `shared/schema.ts` contains all table definitions
+- **Validation**: Drizzle-Zod for generating Zod schemas from database tables
+- **Migrations**: Drizzle Kit for schema migrations (`db:push` command)
+
+### Core Entities
+- **Users**: Authentication and role-based access (agent, admin roles)
+- **Leads**: Contact management with source tracking, scoring, and status pipeline
+- **Properties**: Real estate listings with bilingual support (English/Arabic)
+- **Deals**: Sales pipeline with stages from qualified through closed
+- **Conversations**: WhatsApp conversation threads linked to leads
+- **Messages**: Individual messages within conversations
+- **Message Templates**: Pre-approved WhatsApp message templates
+- **Activities**: Audit trail of all CRM actions
+
+### Design Patterns
+- **Shared Types**: Schema definitions in `/shared` are imported by both client and server
+- **Path Aliases**: `@/` maps to client source, `@shared/` maps to shared code
+- **In-Memory Storage**: Development uses `MemStorage` class with fallback to PostgreSQL via `DatabaseStorage`
+- **Component Architecture**: Reusable card components for leads, properties, deals, and conversations
+
+### Internationalization
+- Custom i18n provider supporting English and Arabic
+- RTL layout support via document direction attribute on both html and body elements
+- Automatic direction sync when language changes
+- Font families: Inter for UI text, Poppins for headings, Noto Sans Arabic for Arabic text
+- All components use ltr:/rtl: Tailwind variants for directional spacing
+
+### Theme System
+- Light and dark mode with CSS custom properties
+- Theme class applied to both document.documentElement and document.body
+- Theme persisted to localStorage
+- System preference detection as fallback
+
+### API Routes (All with Zod Validation)
+- `GET/POST /api/leads` - Lead management
+- `GET/POST /api/properties` - Property listings
+- `GET/POST /api/deals` - Deal pipeline
+- `GET/POST /api/conversations` - WhatsApp conversations
+- `POST /api/conversations/:id/messages` - Send messages
+- `GET/POST /api/templates` - Message templates
+- `GET /api/activities` - Activity timeline
+- `GET /api/dashboard/stats` - Dashboard KPIs
+- `GET /api/analytics/*` - Analytics data
+
+## External Dependencies
+
+### Database
+- **PostgreSQL**: Primary database, connection via `DATABASE_URL` environment variable
+- **connect-pg-simple**: Session storage in PostgreSQL
+
+### UI Libraries
+- **Radix UI**: Full suite of accessible primitives (dialog, dropdown, tabs, etc.)
+- **Embla Carousel**: Image carousels for property galleries
+- **Recharts**: Data visualization charts
+- **Vaul**: Drawer component for mobile interfaces
+
+### Build Tools
+- **Vite**: Frontend build and development server
+- **esbuild**: Server-side bundling for production
+- **tsx**: TypeScript execution for development
+
+### Replit-Specific
+- **@replit/vite-plugin-runtime-error-modal**: Error overlay in development
+- **@replit/vite-plugin-cartographer**: Source mapping for Replit
+- **@replit/vite-plugin-dev-banner**: Development environment indicator

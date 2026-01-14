@@ -1,0 +1,288 @@
+import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+
+type Language = "en" | "ar";
+type Direction = "ltr" | "rtl";
+
+interface I18nContextType {
+  language: Language;
+  direction: Direction;
+  setLanguage: (lang: Language) => void;
+  t: (key: string) => string;
+}
+
+const translations: Record<Language, Record<string, string>> = {
+  en: {
+    "nav.dashboard": "Dashboard",
+    "nav.leads": "Leads",
+    "nav.properties": "Properties",
+    "nav.deals": "Deals",
+    "nav.whatsapp": "WhatsApp",
+    "nav.analytics": "Analytics",
+    "nav.settings": "Settings",
+    "nav.templates": "Templates",
+    "dashboard.title": "Dashboard",
+    "dashboard.welcome": "Welcome back",
+    "dashboard.totalLeads": "Total Leads",
+    "dashboard.activeDeals": "Active Deals",
+    "dashboard.conversionRate": "Conversion Rate",
+    "dashboard.revenue": "Revenue",
+    "dashboard.recentActivity": "Recent Activity",
+    "dashboard.topProperties": "Top Properties",
+    "dashboard.leadsBySource": "Leads by Source",
+    "dashboard.dealsPipeline": "Deals Pipeline",
+    "leads.title": "Leads",
+    "leads.new": "New Lead",
+    "leads.search": "Search leads...",
+    "leads.filter": "Filter",
+    "leads.export": "Export",
+    "leads.import": "Import",
+    "leads.name": "Name",
+    "leads.phone": "Phone",
+    "leads.email": "Email",
+    "leads.source": "Source",
+    "leads.status": "Status",
+    "leads.score": "Score",
+    "leads.assignedTo": "Assigned To",
+    "leads.lastContact": "Last Contact",
+    "leads.actions": "Actions",
+    "leads.noLeads": "No leads found",
+    "leads.addFirst": "Add your first lead to get started",
+    "properties.title": "Properties",
+    "properties.new": "Add Property",
+    "properties.search": "Search properties...",
+    "properties.type": "Type",
+    "properties.price": "Price",
+    "properties.area": "Area",
+    "properties.bedrooms": "Bedrooms",
+    "properties.bathrooms": "Bathrooms",
+    "properties.location": "Location",
+    "properties.status": "Status",
+    "properties.noProperties": "No properties found",
+    "properties.addFirst": "Add your first property listing",
+    "deals.title": "Deals",
+    "deals.new": "New Deal",
+    "deals.search": "Search deals...",
+    "deals.value": "Value",
+    "deals.stage": "Stage",
+    "deals.probability": "Probability",
+    "deals.closeDate": "Expected Close",
+    "deals.noDeals": "No deals found",
+    "deals.addFirst": "Create your first deal",
+    "deals.qualified": "Qualified",
+    "deals.proposal": "Proposal",
+    "deals.negotiation": "Negotiation",
+    "deals.contract": "Contract",
+    "deals.closedWon": "Closed Won",
+    "deals.closedLost": "Closed Lost",
+    "whatsapp.title": "WhatsApp",
+    "whatsapp.conversations": "Conversations",
+    "whatsapp.search": "Search conversations...",
+    "whatsapp.noConversations": "No conversations",
+    "whatsapp.startNew": "Start a new conversation",
+    "whatsapp.typeMessage": "Type a message...",
+    "whatsapp.send": "Send",
+    "whatsapp.templates": "Templates",
+    "analytics.title": "Analytics",
+    "analytics.overview": "Overview",
+    "analytics.performance": "Performance",
+    "analytics.dateRange": "Date Range",
+    "common.save": "Save",
+    "common.cancel": "Cancel",
+    "common.delete": "Delete",
+    "common.edit": "Edit",
+    "common.view": "View",
+    "common.add": "Add",
+    "common.search": "Search",
+    "common.filter": "Filter",
+    "common.export": "Export",
+    "common.loading": "Loading...",
+    "common.noData": "No data available",
+    "common.actions": "Actions",
+    "common.all": "All",
+    "common.today": "Today",
+    "common.thisWeek": "This Week",
+    "common.thisMonth": "This Month",
+    "common.thisYear": "This Year",
+    "source.facebook": "Facebook",
+    "source.instagram": "Instagram",
+    "source.website": "Website",
+    "source.whatsapp": "WhatsApp",
+    "source.referral": "Referral",
+    "source.phone": "Phone",
+    "source.walk_in": "Walk-in",
+    "status.new": "New",
+    "status.contacted": "Contacted",
+    "status.qualified": "Qualified",
+    "status.negotiating": "Negotiating",
+    "status.won": "Won",
+    "status.lost": "Lost",
+    "status.available": "Available",
+    "status.reserved": "Reserved",
+    "status.sold": "Sold",
+    "status.rented": "Rented",
+    "type.apartment": "Apartment",
+    "type.villa": "Villa",
+    "type.townhouse": "Townhouse",
+    "type.penthouse": "Penthouse",
+    "type.office": "Office",
+    "type.retail": "Retail",
+    "type.land": "Land",
+  },
+  ar: {
+    "nav.dashboard": "لوحة التحكم",
+    "nav.leads": "العملاء المحتملين",
+    "nav.properties": "العقارات",
+    "nav.deals": "الصفقات",
+    "nav.whatsapp": "واتساب",
+    "nav.analytics": "التحليلات",
+    "nav.settings": "الإعدادات",
+    "nav.templates": "القوالب",
+    "dashboard.title": "لوحة التحكم",
+    "dashboard.welcome": "مرحباً بعودتك",
+    "dashboard.totalLeads": "إجمالي العملاء",
+    "dashboard.activeDeals": "الصفقات النشطة",
+    "dashboard.conversionRate": "معدل التحويل",
+    "dashboard.revenue": "الإيرادات",
+    "dashboard.recentActivity": "النشاط الأخير",
+    "dashboard.topProperties": "أفضل العقارات",
+    "dashboard.leadsBySource": "العملاء حسب المصدر",
+    "dashboard.dealsPipeline": "مسار الصفقات",
+    "leads.title": "العملاء المحتملين",
+    "leads.new": "عميل جديد",
+    "leads.search": "البحث عن العملاء...",
+    "leads.filter": "تصفية",
+    "leads.export": "تصدير",
+    "leads.import": "استيراد",
+    "leads.name": "الاسم",
+    "leads.phone": "الهاتف",
+    "leads.email": "البريد الإلكتروني",
+    "leads.source": "المصدر",
+    "leads.status": "الحالة",
+    "leads.score": "النقاط",
+    "leads.assignedTo": "مسند إلى",
+    "leads.lastContact": "آخر تواصل",
+    "leads.actions": "الإجراءات",
+    "leads.noLeads": "لا يوجد عملاء",
+    "leads.addFirst": "أضف أول عميل للبدء",
+    "properties.title": "العقارات",
+    "properties.new": "إضافة عقار",
+    "properties.search": "البحث عن العقارات...",
+    "properties.type": "النوع",
+    "properties.price": "السعر",
+    "properties.area": "المساحة",
+    "properties.bedrooms": "غرف النوم",
+    "properties.bathrooms": "الحمامات",
+    "properties.location": "الموقع",
+    "properties.status": "الحالة",
+    "properties.noProperties": "لا يوجد عقارات",
+    "properties.addFirst": "أضف أول عقار",
+    "deals.title": "الصفقات",
+    "deals.new": "صفقة جديدة",
+    "deals.search": "البحث عن الصفقات...",
+    "deals.value": "القيمة",
+    "deals.stage": "المرحلة",
+    "deals.probability": "الاحتمالية",
+    "deals.closeDate": "تاريخ الإغلاق المتوقع",
+    "deals.noDeals": "لا يوجد صفقات",
+    "deals.addFirst": "أنشئ أول صفقة",
+    "deals.qualified": "مؤهل",
+    "deals.proposal": "عرض",
+    "deals.negotiation": "تفاوض",
+    "deals.contract": "عقد",
+    "deals.closedWon": "تم الإغلاق - ربح",
+    "deals.closedLost": "تم الإغلاق - خسارة",
+    "whatsapp.title": "واتساب",
+    "whatsapp.conversations": "المحادثات",
+    "whatsapp.search": "البحث في المحادثات...",
+    "whatsapp.noConversations": "لا يوجد محادثات",
+    "whatsapp.startNew": "ابدأ محادثة جديدة",
+    "whatsapp.typeMessage": "اكتب رسالة...",
+    "whatsapp.send": "إرسال",
+    "whatsapp.templates": "القوالب",
+    "analytics.title": "التحليلات",
+    "analytics.overview": "نظرة عامة",
+    "analytics.performance": "الأداء",
+    "analytics.dateRange": "نطاق التاريخ",
+    "common.save": "حفظ",
+    "common.cancel": "إلغاء",
+    "common.delete": "حذف",
+    "common.edit": "تعديل",
+    "common.view": "عرض",
+    "common.add": "إضافة",
+    "common.search": "بحث",
+    "common.filter": "تصفية",
+    "common.export": "تصدير",
+    "common.loading": "جاري التحميل...",
+    "common.noData": "لا توجد بيانات",
+    "common.actions": "الإجراءات",
+    "common.all": "الكل",
+    "common.today": "اليوم",
+    "common.thisWeek": "هذا الأسبوع",
+    "common.thisMonth": "هذا الشهر",
+    "common.thisYear": "هذه السنة",
+    "source.facebook": "فيسبوك",
+    "source.instagram": "انستغرام",
+    "source.website": "الموقع الإلكتروني",
+    "source.whatsapp": "واتساب",
+    "source.referral": "إحالة",
+    "source.phone": "هاتف",
+    "source.walk_in": "زيارة مباشرة",
+    "status.new": "جديد",
+    "status.contacted": "تم التواصل",
+    "status.qualified": "مؤهل",
+    "status.negotiating": "في التفاوض",
+    "status.won": "تم الربح",
+    "status.lost": "تم الخسارة",
+    "status.available": "متاح",
+    "status.reserved": "محجوز",
+    "status.sold": "مباع",
+    "status.rented": "مؤجر",
+    "type.apartment": "شقة",
+    "type.villa": "فيلا",
+    "type.townhouse": "تاون هاوس",
+    "type.penthouse": "بنتهاوس",
+    "type.office": "مكتب",
+    "type.retail": "تجزئة",
+    "type.land": "أرض",
+  },
+};
+
+const I18nContext = createContext<I18nContextType | null>(null);
+
+export function I18nProvider({ children }: { children: ReactNode }) {
+  const [language, setLanguageState] = useState<Language>(() => {
+    const saved = localStorage.getItem("language");
+    return (saved as Language) || "en";
+  });
+
+  const direction: Direction = language === "ar" ? "rtl" : "ltr";
+
+  const setLanguage = (lang: Language) => {
+    setLanguageState(lang);
+    localStorage.setItem("language", lang);
+  };
+
+  useEffect(() => {
+    document.documentElement.setAttribute("dir", direction);
+    document.documentElement.setAttribute("lang", language);
+    document.body.setAttribute("dir", direction);
+  }, [language, direction]);
+
+  const t = (key: string): string => {
+    return translations[language][key] || key;
+  };
+
+  return (
+    <I18nContext.Provider value={{ language, direction, setLanguage, t }}>
+      {children}
+    </I18nContext.Provider>
+  );
+}
+
+export function useI18n() {
+  const context = useContext(I18nContext);
+  if (!context) {
+    throw new Error("useI18n must be used within I18nProvider");
+  }
+  return context;
+}
