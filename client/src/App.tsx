@@ -59,13 +59,13 @@ function App() {
           <TooltipProvider>
             <SidebarProvider style={sidebarStyle as React.CSSProperties}>
               <div className="flex h-screen w-full overflow-hidden">
-                <AppSidebar />
                 <SidebarInset className="flex flex-col flex-1 overflow-hidden">
                   <Header />
                   <main className="flex-1 overflow-auto">
                     <Router />
                   </main>
                 </SidebarInset>
+                <AppSidebar />
               </div>
             </SidebarProvider>
             <Toaster />
