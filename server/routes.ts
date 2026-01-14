@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertLeadSchema, insertPropertySchema, insertDealSchema, insertMessageTemplateSchema, insertMessageSchema, insertPropertyOfferSchema, insertRealEstateOfficeSchema, insertSalesAgentSchema } from "@shared/schema";
+import { insertLeadSchema, insertPropertySchema, insertDealSchema, insertMessageTemplateSchema, insertMessageSchema, insertPropertyOfferSchema, insertRealEstateOfficeSchema, insertSalesAgentSchema, insertPropertyRequestSchema, insertPropertyMatchSchema } from "@shared/schema";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
 
@@ -527,6 +527,125 @@ export async function registerRoutes(
       res.status(204).send();
     } catch (error) {
       res.status(500).json({ error: "Failed to delete sales agent" });
+    }
+  });
+
+  app.get("/api/property-requests", async (req, res) => {
+    try {
+      const requests = await storage.getPropertyRequests();
+      res.json(requests);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch property requests" });
+    }
+  });
+
+  app.get("/api/property-requests/:id", async (req, res) => {
+    try {
+      const request = await storage.getPropertyRequest(req.params.id);
+      if (!request) {
+        return res.status(404).json({ error: "Property request not found" });
+      }
+      res.json(request);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch property request" });
+    }
+  });
+
+  app.post("/api/property-requests", async (req, res) => {
+    try {
+      const validated = validateBody(insertPropertyRequestSchema, req.body);
+      const request = await storage.createPropertyRequest(validated);
+      
+      const matches = await storage.findMatchingProperties(request);
+      
+      for (const match of matches) {
+        await storage.createPropertyMatch({
+          requestId: request.id,
+          propertyOfferId: match.offer.id,
+          matchScore: match.score,
+          matchDetails: match.details,
+        });
+      }
+      
+      if (matches.length > 0) {
+        await storage.updatePropertyRequest(request.id, {
+          status: "matched",
+          matchCount: matches.length,
+        } as any);
+      }
+      
+      res.status(201).json({ request, matchCount: matches.length });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to create property request";
+      res.status(400).json({ error: message });
+    }
+  });
+
+  app.patch("/api/property-requests/:id", async (req, res) => {
+    try {
+      const partialSchema = insertPropertyRequestSchema.partial();
+      const validated = validateBody(partialSchema, req.body);
+      const request = await storage.updatePropertyRequest(req.params.id, validated);
+      if (!request) {
+        return res.status(404).json({ error: "Property request not found" });
+      }
+      res.json(request);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to update property request";
+      res.status(400).json({ error: message });
+    }
+  });
+
+  app.delete("/api/property-requests/:id", async (req, res) => {
+    try {
+      const deleted = await storage.deletePropertyRequest(req.params.id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Property request not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete property request" });
+    }
+  });
+
+  app.get("/api/property-requests/:id/matches", async (req, res) => {
+    try {
+      const request = await storage.getPropertyRequest(req.params.id);
+      if (!request) {
+        return res.status(404).json({ error: "Property request not found" });
+      }
+      
+      const matches = await storage.getPropertyMatches(req.params.id);
+      
+      const enrichedMatches = await Promise.all(
+        matches.map(async (match) => {
+          const offer = await storage.getPropertyOffer(match.propertyOfferId);
+          return { match, offer };
+        })
+      );
+      
+      res.json(enrichedMatches.filter(m => m.offer));
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch matches" });
+    }
+  });
+
+  app.patch("/api/property-matches/:id", async (req, res) => {
+    try {
+      const matchUpdateSchema = z.object({
+        status: z.string().optional(),
+        viewedAt: z.string().optional(),
+        contactedAt: z.string().optional(),
+      });
+      const validated = validateBody(matchUpdateSchema, req.body);
+      const match = await storage.updatePropertyMatch(req.params.id, validated as any);
+      if (!match) {
+        return res.status(404).json({ error: "Match not found" });
+      }
+      res.json(match);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to update match";
+      res.status(400).json({ error: message });
     }
   });
 

@@ -13,7 +13,8 @@ import {
   ClipboardList,
   PlusCircle,
   Building,
-  UserCheck
+  UserCheck,
+  Search
 } from "lucide-react";
 import {
   Sidebar,
@@ -47,6 +48,7 @@ const mainNavItems = [
 const offersNavItems = [
   { icon: ClipboardList, labelKey: "nav.offers", href: "/offers" },
   { icon: PlusCircle, labelKey: "nav.submitOffer", href: "/submit-offer" },
+  { icon: Search, labelKey: "nav.matching", href: "/property-requests" },
 ];
 
 const adminNavItems = [

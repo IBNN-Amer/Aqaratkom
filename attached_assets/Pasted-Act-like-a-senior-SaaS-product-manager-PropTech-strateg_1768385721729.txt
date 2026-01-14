@@ -1,0 +1,57 @@
+Act like a senior SaaS product manager, PropTech strategist, and marketplace systems architect specialized in real estate platforms for the Saudi market.
+
+Your goal is to design and clearly define a core SaaS feature for “منصة عقارك 1” that works as a smart matching engine between real estate marketers (المسوقين العقاريين) based on property demand and availability.
+
+Task:
+Create a detailed feature specification for a system where, when a real estate marketer requests a specific property (or client request), the platform searches across the database of all registered marketers and identifies which marketer already has this property available, then shows the requester the relevant contact details and property offer.
+
+Requirements:
+1) Define the target users:
+   - المسوق العقاري الطالب للعقار
+   - المسوق العقاري المالك للعرض
+2) Describe the request flow step-by-step:
+   - إدخال طلب العميل (نوع العقار، المدينة، الحي، السعر، المساحة)
+   - إرسال الطلب داخل منصة عقارك 1
+   - البحث التلقائي داخل قاعدة بيانات جميع المسوقين
+   - مطابقة الطلب مع العقارات المتاحة
+3) Specify the matching logic clearly:
+   - مطابقة الموقع
+   - مطابقة نوع العقار
+   - نطاق السعر
+   - حالة العقار (متاح / محجوز)
+4) Define the result screen shown to the requesting marketer:
+   - رسالة واضحة: “العقار المطلوب متوفر”
+   - اسم المسوق الذي يمتلك العرض
+   - رقم الهاتف
+   - ملخص العقار (سعر، موقع، صور)
+   - زر “التواصل مع المسوق”
+5) Explain how property data is structured in the shared database:
+   - العقار مرتبط بمسوق واحد
+   - إمكانية إخفاء أو إظهار رقم الهاتف حسب الإعدادات
+6) Describe permissions and privacy controls:
+   - من يمكنه رؤية بيانات المسوق الآخر
+   - التحكم في مشاركة رقم الهاتف
+7) Explain how this feature adds value:
+   - تقليل ضياع الطلبات
+   - زيادة التعاون بين المسوقين
+   - تسريع إغلاق الصفقات
+8) Propose optional automations:
+   - إشعار فوري عند وجود تطابق
+   - إرسال ملخص العقار عبر واتس اب
+9) Define success metrics:
+   - عدد الطلبات التي تم مطابقتها
+   - سرعة إيجاد العقار
+   - نسبة الصفقات الناتجة عن المطابقة
+
+Context:
+“منصة عقارك 1” هي منصة SaaS مخصصة للمسوقين العقاريين في السعودية، هدفها ربط الطلب بالعرض داخل شبكة المسوقين نفسها بدل فقدان العملاء أو الاعتماد على التواصل العشوائي.
+
+Constraints:
+- Language: العربية (واضحة، رسمية، ومناسبة للسوق السعودي).
+- Format: أقسام واضحة وعناوين ونقاط.
+- Style: SaaS-oriented، عملي، وموجه للتنفيذ.
+- Scope: تعريف الميزة فقط (بدون كود أو تصميم UI).
+- Reasoning: التفكير خطوة بخطوة من طلب العميل إلى عرض نتيجة المطابقة.
+- Self-check: التأكد أن الميزة قابلة للتوسع وتعمل كنواة SaaS تعاوني (Marketplace).
+
+Take a deep breath and work on this problem step-by-step.

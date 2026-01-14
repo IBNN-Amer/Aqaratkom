@@ -20,6 +20,8 @@ import Offers from "@/pages/offers";
 import SubmitOffer from "@/pages/submit-offer";
 import Offices from "@/pages/offices";
 import SalesAgents from "@/pages/sales-agents";
+import PropertyRequests from "@/pages/property-requests";
+import PropertyMatches from "@/pages/property-matches";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -37,6 +39,8 @@ function Router() {
       <Route path="/submit-offer" component={SubmitOffer} />
       <Route path="/offices" component={Offices} />
       <Route path="/sales-agents" component={SalesAgents} />
+      <Route path="/property-requests" component={PropertyRequests} />
+      <Route path="/property-requests/:id/matches" component={PropertyMatches} />
       <Route component={NotFound} />
     </Switch>
   );

@@ -179,6 +179,47 @@ export const propertyOffers = pgTable("property_offers", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+export const propertyRequests = pgTable("property_requests", {
+  id: varchar("id").primaryKey(),
+  requesterId: varchar("requester_id"),
+  requesterAgentId: varchar("requester_agent_id"),
+  requesterOfficeId: varchar("requester_office_id"),
+  propertyType: text("property_type").notNull(),
+  listingType: text("listing_type").notNull(),
+  city: text("city").notNull(),
+  cityAr: text("city_ar"),
+  district: text("district"),
+  districtAr: text("district_ar"),
+  minPrice: text("min_price"),
+  maxPrice: text("max_price").notNull(),
+  minArea: integer("min_area"),
+  maxArea: integer("max_area"),
+  bedrooms: integer("bedrooms"),
+  bathrooms: integer("bathrooms"),
+  propertyCondition: text("property_condition"),
+  clientName: text("client_name"),
+  clientPhone: text("client_phone"),
+  notes: text("notes"),
+  notesAr: text("notes_ar"),
+  status: text("status").notNull().default("active"),
+  matchCount: integer("match_count").default(0),
+  expiresAt: timestamp("expires_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const propertyMatches = pgTable("property_matches", {
+  id: varchar("id").primaryKey(),
+  requestId: varchar("request_id").notNull(),
+  propertyOfferId: varchar("property_offer_id").notNull(),
+  matchScore: integer("match_score").notNull(),
+  matchDetails: text("match_details"),
+  status: text("status").notNull().default("new"),
+  viewedAt: timestamp("viewed_at"),
+  contactedAt: timestamp("contacted_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const insertUserSchema = createInsertSchema(users).omit({ id: true });
 export const insertLeadSchema = createInsertSchema(leads).omit({ id: true, createdAt: true });
 export const insertPropertySchema = createInsertSchema(properties).omit({ id: true, createdAt: true, updatedAt: true });
@@ -190,6 +231,8 @@ export const insertActivitySchema = createInsertSchema(activities).omit({ id: tr
 export const insertPropertyOfferSchema = createInsertSchema(propertyOffers).omit({ id: true, createdAt: true, updatedAt: true, reviewedAt: true });
 export const insertRealEstateOfficeSchema = createInsertSchema(realEstateOffices).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertSalesAgentSchema = createInsertSchema(salesAgents).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertPropertyRequestSchema = createInsertSchema(propertyRequests).omit({ id: true, createdAt: true, updatedAt: true });
+export const insertPropertyMatchSchema = createInsertSchema(propertyMatches).omit({ id: true, createdAt: true });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -213,6 +256,10 @@ export type InsertRealEstateOffice = z.infer<typeof insertRealEstateOfficeSchema
 export type RealEstateOffice = typeof realEstateOffices.$inferSelect;
 export type InsertSalesAgent = z.infer<typeof insertSalesAgentSchema>;
 export type SalesAgent = typeof salesAgents.$inferSelect;
+export type InsertPropertyRequest = z.infer<typeof insertPropertyRequestSchema>;
+export type PropertyRequest = typeof propertyRequests.$inferSelect;
+export type InsertPropertyMatch = z.infer<typeof insertPropertyMatchSchema>;
+export type PropertyMatch = typeof propertyMatches.$inferSelect;
 
 export const LeadSources = ["facebook", "instagram", "website", "whatsapp", "referral", "phone", "walk_in"] as const;
 export const LeadStatuses = ["new", "contacted", "qualified", "negotiating", "won", "lost"] as const;
@@ -239,6 +286,10 @@ export type OfferReviewStatus = typeof OfferReviewStatuses[number];
 
 export const PropertySources = ["developer", "broker", "direct_owner", "marketing_campaign", "custom"] as const;
 export const SalesAgentRoles = ["sales", "supervisor", "manager"] as const;
+export const RequestStatuses = ["active", "matched", "fulfilled", "expired", "cancelled"] as const;
+export const MatchStatuses = ["new", "viewed", "contacted", "successful", "unsuccessful"] as const;
 
 export type PropertySourceType = typeof PropertySources[number];
 export type SalesAgentRole = typeof SalesAgentRoles[number];
+export type RequestStatus = typeof RequestStatuses[number];
+export type MatchStatus = typeof MatchStatuses[number];

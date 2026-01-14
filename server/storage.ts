@@ -10,7 +10,9 @@ import type {
   Activity, InsertActivity,
   PropertyOffer, InsertPropertyOffer,
   RealEstateOffice, InsertRealEstateOffice,
-  SalesAgent, InsertSalesAgent
+  SalesAgent, InsertSalesAgent,
+  PropertyRequest, InsertPropertyRequest,
+  PropertyMatch, InsertPropertyMatch
 } from "@shared/schema";
 
 export interface IStorage {
@@ -112,6 +114,19 @@ export interface IStorage {
   getLeadTrends(): Promise<{ date: string; leads: number; conversions: number }[]>;
   getAgentPerformance(): Promise<{ name: string; leads: number; deals: number; revenue: number }[]>;
   getSourcePerformance(): Promise<{ source: string; leads: number; conversion: number }[]>;
+  
+  getPropertyRequests(): Promise<PropertyRequest[]>;
+  getPropertyRequest(id: string): Promise<PropertyRequest | undefined>;
+  createPropertyRequest(request: InsertPropertyRequest): Promise<PropertyRequest>;
+  updatePropertyRequest(id: string, request: Partial<InsertPropertyRequest>): Promise<PropertyRequest | undefined>;
+  deletePropertyRequest(id: string): Promise<boolean>;
+  
+  getPropertyMatches(requestId: string): Promise<PropertyMatch[]>;
+  getPropertyMatch(id: string): Promise<PropertyMatch | undefined>;
+  createPropertyMatch(match: InsertPropertyMatch): Promise<PropertyMatch>;
+  updatePropertyMatch(id: string, match: Partial<InsertPropertyMatch>): Promise<PropertyMatch | undefined>;
+  
+  findMatchingProperties(request: PropertyRequest): Promise<{ offer: PropertyOffer; score: number; details: string }[]>;
 }
 
 export class MemStorage implements IStorage {
@@ -126,6 +141,8 @@ export class MemStorage implements IStorage {
   private templates: Map<string, MessageTemplate> = new Map();
   private activities: Map<string, Activity> = new Map();
   private propertyOffers: Map<string, PropertyOffer> = new Map();
+  private propertyRequests: Map<string, PropertyRequest> = new Map();
+  private propertyMatches: Map<string, PropertyMatch> = new Map();
 
   constructor() {
     this.seedData();
@@ -821,6 +838,165 @@ export class MemStorage implements IStorage {
       { source: "Referral", leads: 18, conversion: 55 },
       { source: "Phone", leads: 12, conversion: 25 },
     ];
+  }
+
+  async getPropertyRequests(): Promise<PropertyRequest[]> {
+    return Array.from(this.propertyRequests.values()).sort((a, b) => 
+      new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+    );
+  }
+
+  async getPropertyRequest(id: string): Promise<PropertyRequest | undefined> {
+    return this.propertyRequests.get(id);
+  }
+
+  async createPropertyRequest(insertRequest: InsertPropertyRequest): Promise<PropertyRequest> {
+    const id = randomUUID();
+    const request: PropertyRequest = {
+      ...insertRequest,
+      id,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      status: insertRequest.status ?? "active",
+      matchCount: 0,
+      requesterId: insertRequest.requesterId ?? null,
+      requesterAgentId: insertRequest.requesterAgentId ?? null,
+      requesterOfficeId: insertRequest.requesterOfficeId ?? null,
+      cityAr: insertRequest.cityAr ?? null,
+      district: insertRequest.district ?? null,
+      districtAr: insertRequest.districtAr ?? null,
+      minPrice: insertRequest.minPrice ?? null,
+      minArea: insertRequest.minArea ?? null,
+      maxArea: insertRequest.maxArea ?? null,
+      bedrooms: insertRequest.bedrooms ?? null,
+      bathrooms: insertRequest.bathrooms ?? null,
+      propertyCondition: insertRequest.propertyCondition ?? null,
+      clientName: insertRequest.clientName ?? null,
+      clientPhone: insertRequest.clientPhone ?? null,
+      notes: insertRequest.notes ?? null,
+      notesAr: insertRequest.notesAr ?? null,
+      expiresAt: insertRequest.expiresAt ?? null,
+    };
+    this.propertyRequests.set(id, request);
+    
+    await this.createActivity({
+      type: "lead_created",
+      entityType: "property_request",
+      entityId: id,
+      description: `New property request for ${request.propertyType} in ${request.city}`,
+    });
+    
+    return request;
+  }
+
+  async updatePropertyRequest(id: string, updates: Partial<InsertPropertyRequest>): Promise<PropertyRequest | undefined> {
+    const request = this.propertyRequests.get(id);
+    if (!request) return undefined;
+    const updated = { ...request, ...updates, updatedAt: new Date() };
+    this.propertyRequests.set(id, updated);
+    return updated;
+  }
+
+  async deletePropertyRequest(id: string): Promise<boolean> {
+    return this.propertyRequests.delete(id);
+  }
+
+  async getPropertyMatches(requestId: string): Promise<PropertyMatch[]> {
+    return Array.from(this.propertyMatches.values())
+      .filter(m => m.requestId === requestId)
+      .sort((a, b) => b.matchScore - a.matchScore);
+  }
+
+  async getPropertyMatch(id: string): Promise<PropertyMatch | undefined> {
+    return this.propertyMatches.get(id);
+  }
+
+  async createPropertyMatch(insertMatch: InsertPropertyMatch): Promise<PropertyMatch> {
+    const id = randomUUID();
+    const match: PropertyMatch = {
+      ...insertMatch,
+      id,
+      createdAt: new Date(),
+      status: insertMatch.status ?? "new",
+      matchDetails: insertMatch.matchDetails ?? null,
+      viewedAt: insertMatch.viewedAt ?? null,
+      contactedAt: insertMatch.contactedAt ?? null,
+    };
+    this.propertyMatches.set(id, match);
+    return match;
+  }
+
+  async updatePropertyMatch(id: string, updates: Partial<PropertyMatch>): Promise<PropertyMatch | undefined> {
+    const match = this.propertyMatches.get(id);
+    if (!match) return undefined;
+    const processedUpdates: Partial<PropertyMatch> = { ...updates };
+    if (updates.contactedAt && typeof updates.contactedAt === "string") {
+      processedUpdates.contactedAt = new Date(updates.contactedAt);
+    }
+    if (updates.viewedAt && typeof updates.viewedAt === "string") {
+      processedUpdates.viewedAt = new Date(updates.viewedAt);
+    }
+    const updated = { ...match, ...processedUpdates };
+    this.propertyMatches.set(id, updated);
+    return updated;
+  }
+
+  async findMatchingProperties(request: PropertyRequest): Promise<{ offer: PropertyOffer; score: number; details: string }[]> {
+    const offers = await this.getPropertyOffersByStatus("approved");
+    const matches: { offer: PropertyOffer; score: number; details: string }[] = [];
+
+    for (const offer of offers) {
+      let score = 0;
+      const matchReasons: string[] = [];
+
+      if (offer.city?.toLowerCase() === request.city?.toLowerCase()) {
+        score += 40;
+        matchReasons.push("city_match");
+      }
+
+      if (offer.listingType === request.listingType) {
+        const offerTypeMap: Record<string, string[]> = {
+          residential: ["apartment", "villa", "townhouse", "penthouse"],
+          commercial: ["office", "retail"],
+          investment: ["land"],
+        };
+        const offerTypes = offerTypeMap[offer.propertyType] || [];
+        if (offerTypes.includes(request.propertyType?.toLowerCase() || "")) {
+          score += 25;
+          matchReasons.push("type_match");
+        }
+      }
+
+      const offerPrice = parseFloat(offer.price || "0");
+      const minPrice = parseFloat(request.minPrice || "0");
+      const maxPrice = parseFloat(request.maxPrice || "999999999");
+      if (offerPrice > 0 && offerPrice >= minPrice && offerPrice <= maxPrice) {
+        score += 20;
+        matchReasons.push("price_match");
+      }
+
+      if (request.district && request.district.length > 0 && 
+          offer.district?.toLowerCase() === request.district.toLowerCase()) {
+        score += 10;
+        matchReasons.push("district_match");
+      }
+
+      if (request.propertyCondition && request.propertyCondition.length > 0 &&
+          offer.propertyCondition === request.propertyCondition) {
+        score += 5;
+        matchReasons.push("condition_match");
+      }
+
+      if (score >= 40) {
+        matches.push({
+          offer,
+          score,
+          details: matchReasons.join(","),
+        });
+      }
+    }
+
+    return matches.sort((a, b) => b.score - a.score);
   }
 }
 
