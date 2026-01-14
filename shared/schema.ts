@@ -8,8 +8,52 @@ export const users = pgTable("users", {
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
   fullName: text("full_name").notNull(),
-  role: text("role").notNull().default("agent"),
+  fullNameAr: text("full_name_ar"),
+  role: text("role").notNull().default("sales"),
+  officeId: varchar("office_id"),
+  phone: text("phone"),
+  email: text("email"),
   avatar: text("avatar"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  lastLoginAt: timestamp("last_login_at"),
+});
+
+export const notifications = pgTable("notifications", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  type: text("type").notNull(),
+  title: text("title").notNull(),
+  titleAr: text("title_ar"),
+  message: text("message").notNull(),
+  messageAr: text("message_ar"),
+  entityType: text("entity_type"),
+  entityId: varchar("entity_id"),
+  isRead: boolean("is_read").default(false),
+  priority: text("priority").default("normal"),
+  createdAt: timestamp("created_at").defaultNow(),
+  readAt: timestamp("read_at"),
+});
+
+export const followUps = pgTable("follow_ups", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  leadId: varchar("lead_id"),
+  dealId: varchar("deal_id"),
+  propertyId: varchar("property_id"),
+  type: text("type").notNull(),
+  title: text("title").notNull(),
+  titleAr: text("title_ar"),
+  description: text("description"),
+  descriptionAr: text("description_ar"),
+  scheduledAt: timestamp("scheduled_at").notNull(),
+  reminderAt: timestamp("reminder_at"),
+  status: text("status").notNull().default("pending"),
+  priority: text("priority").default("normal"),
+  completedAt: timestamp("completed_at"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const leads = pgTable("leads", {
@@ -220,7 +264,7 @@ export const propertyMatches = pgTable("property_matches", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const insertUserSchema = createInsertSchema(users).omit({ id: true });
+export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true, lastLoginAt: true });
 export const insertLeadSchema = createInsertSchema(leads).omit({ id: true, createdAt: true });
 export const insertPropertySchema = createInsertSchema(properties).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertDealSchema = createInsertSchema(deals).omit({ id: true, createdAt: true, updatedAt: true });
@@ -233,6 +277,8 @@ export const insertRealEstateOfficeSchema = createInsertSchema(realEstateOffices
 export const insertSalesAgentSchema = createInsertSchema(salesAgents).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertPropertyRequestSchema = createInsertSchema(propertyRequests).omit({ id: true, createdAt: true, updatedAt: true });
 export const insertPropertyMatchSchema = createInsertSchema(propertyMatches).omit({ id: true, createdAt: true });
+export const insertNotificationSchema = createInsertSchema(notifications).omit({ id: true, createdAt: true, readAt: true });
+export const insertFollowUpSchema = createInsertSchema(followUps).omit({ id: true, createdAt: true, updatedAt: true, completedAt: true });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -260,6 +306,10 @@ export type InsertPropertyRequest = z.infer<typeof insertPropertyRequestSchema>;
 export type PropertyRequest = typeof propertyRequests.$inferSelect;
 export type InsertPropertyMatch = z.infer<typeof insertPropertyMatchSchema>;
 export type PropertyMatch = typeof propertyMatches.$inferSelect;
+export type InsertNotification = z.infer<typeof insertNotificationSchema>;
+export type Notification = typeof notifications.$inferSelect;
+export type InsertFollowUp = z.infer<typeof insertFollowUpSchema>;
+export type FollowUp = typeof followUps.$inferSelect;
 
 export const LeadSources = ["facebook", "instagram", "website", "whatsapp", "referral", "phone", "walk_in"] as const;
 export const LeadStatuses = ["new", "contacted", "qualified", "negotiating", "won", "lost"] as const;
@@ -289,7 +339,18 @@ export const SalesAgentRoles = ["sales", "supervisor", "manager"] as const;
 export const RequestStatuses = ["active", "matched", "fulfilled", "expired", "cancelled"] as const;
 export const MatchStatuses = ["new", "viewed", "contacted", "successful", "unsuccessful"] as const;
 
+export const UserRoles = ["admin", "office_manager", "sales"] as const;
+export const NotificationTypes = ["new_lead", "new_message", "deal_update", "follow_up_reminder", "property_update", "offer_update", "system"] as const;
+export const NotificationPriorities = ["low", "normal", "high", "urgent"] as const;
+export const FollowUpTypes = ["meeting", "call", "email", "site_visit", "other"] as const;
+export const FollowUpStatuses = ["pending", "completed", "cancelled", "rescheduled"] as const;
+
 export type PropertySourceType = typeof PropertySources[number];
 export type SalesAgentRole = typeof SalesAgentRoles[number];
 export type RequestStatus = typeof RequestStatuses[number];
 export type MatchStatus = typeof MatchStatuses[number];
+export type UserRole = typeof UserRoles[number];
+export type NotificationType = typeof NotificationTypes[number];
+export type NotificationPriority = typeof NotificationPriorities[number];
+export type FollowUpType = typeof FollowUpTypes[number];
+export type FollowUpStatus = typeof FollowUpStatuses[number];

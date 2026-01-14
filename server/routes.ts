@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertLeadSchema, insertPropertySchema, insertDealSchema, insertMessageTemplateSchema, insertMessageSchema, insertPropertyOfferSchema, insertRealEstateOfficeSchema, insertSalesAgentSchema, insertPropertyRequestSchema, insertPropertyMatchSchema } from "@shared/schema";
+import { insertLeadSchema, insertPropertySchema, insertDealSchema, insertMessageTemplateSchema, insertMessageSchema, insertPropertyOfferSchema, insertRealEstateOfficeSchema, insertSalesAgentSchema, insertPropertyRequestSchema, insertPropertyMatchSchema, insertNotificationSchema, insertFollowUpSchema } from "@shared/schema";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
 
@@ -646,6 +646,164 @@ export async function registerRoutes(
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to update match";
       res.status(400).json({ error: message });
+    }
+  });
+
+  app.get("/api/notifications", async (req, res) => {
+    try {
+      const userId = (req.query.userId as string) || "user-1";
+      const notifications = await storage.getNotifications(userId);
+      res.json(notifications);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch notifications" });
+    }
+  });
+
+  app.get("/api/notifications/unread-count", async (req, res) => {
+    try {
+      const userId = (req.query.userId as string) || "user-1";
+      const count = await storage.getUnreadNotificationCount(userId);
+      res.json({ count });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch unread count" });
+    }
+  });
+
+  app.post("/api/notifications", async (req, res) => {
+    try {
+      const validated = validateBody(insertNotificationSchema, req.body);
+      const notification = await storage.createNotification(validated);
+      res.status(201).json(notification);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to create notification";
+      res.status(400).json({ error: message });
+    }
+  });
+
+  app.patch("/api/notifications/:id/read", async (req, res) => {
+    try {
+      const notification = await storage.markNotificationRead(req.params.id);
+      if (!notification) {
+        return res.status(404).json({ error: "Notification not found" });
+      }
+      res.json(notification);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to mark notification as read" });
+    }
+  });
+
+  app.post("/api/notifications/mark-all-read", async (req, res) => {
+    try {
+      const userId = (req.body.userId as string) || "user-1";
+      const count = await storage.markAllNotificationsRead(userId);
+      res.json({ marked: count });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to mark notifications as read" });
+    }
+  });
+
+  app.delete("/api/notifications/:id", async (req, res) => {
+    try {
+      const deleted = await storage.deleteNotification(req.params.id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Notification not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete notification" });
+    }
+  });
+
+  app.get("/api/follow-ups", async (req, res) => {
+    try {
+      const userId = req.query.userId as string | undefined;
+      const followUps = await storage.getFollowUps(userId);
+      res.json(followUps);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch follow-ups" });
+    }
+  });
+
+  app.get("/api/follow-ups/upcoming", async (req, res) => {
+    try {
+      const userId = (req.query.userId as string) || "user-1";
+      const days = parseInt(req.query.days as string) || 7;
+      const followUps = await storage.getUpcomingFollowUps(userId, days);
+      res.json(followUps);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch upcoming follow-ups" });
+    }
+  });
+
+  app.get("/api/follow-ups/:id", async (req, res) => {
+    try {
+      const followUp = await storage.getFollowUp(req.params.id);
+      if (!followUp) {
+        return res.status(404).json({ error: "Follow-up not found" });
+      }
+      res.json(followUp);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch follow-up" });
+    }
+  });
+
+  app.get("/api/leads/:leadId/follow-ups", async (req, res) => {
+    try {
+      const followUps = await storage.getFollowUpsByLead(req.params.leadId);
+      res.json(followUps);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch follow-ups for lead" });
+    }
+  });
+
+  app.post("/api/follow-ups", async (req, res) => {
+    try {
+      const validated = validateBody(insertFollowUpSchema, req.body);
+      const followUp = await storage.createFollowUp(validated);
+      res.status(201).json(followUp);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to create follow-up";
+      res.status(400).json({ error: message });
+    }
+  });
+
+  app.patch("/api/follow-ups/:id", async (req, res) => {
+    try {
+      const partialSchema = insertFollowUpSchema.partial();
+      const validated = validateBody(partialSchema, req.body);
+      const followUp = await storage.updateFollowUp(req.params.id, validated);
+      if (!followUp) {
+        return res.status(404).json({ error: "Follow-up not found" });
+      }
+      res.json(followUp);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to update follow-up";
+      res.status(400).json({ error: message });
+    }
+  });
+
+  app.post("/api/follow-ups/:id/complete", async (req, res) => {
+    try {
+      const notes = req.body.notes as string | undefined;
+      const followUp = await storage.completeFollowUp(req.params.id, notes);
+      if (!followUp) {
+        return res.status(404).json({ error: "Follow-up not found" });
+      }
+      res.json(followUp);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to complete follow-up" });
+    }
+  });
+
+  app.delete("/api/follow-ups/:id", async (req, res) => {
+    try {
+      const deleted = await storage.deleteFollowUp(req.params.id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Follow-up not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete follow-up" });
     }
   });
 

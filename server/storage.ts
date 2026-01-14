@@ -12,7 +12,9 @@ import type {
   RealEstateOffice, InsertRealEstateOffice,
   SalesAgent, InsertSalesAgent,
   PropertyRequest, InsertPropertyRequest,
-  PropertyMatch, InsertPropertyMatch
+  PropertyMatch, InsertPropertyMatch,
+  Notification, InsertNotification,
+  FollowUp, InsertFollowUp
 } from "@shared/schema";
 
 export interface IStorage {
@@ -127,6 +129,22 @@ export interface IStorage {
   updatePropertyMatch(id: string, match: Partial<InsertPropertyMatch>): Promise<PropertyMatch | undefined>;
   
   findMatchingProperties(request: PropertyRequest): Promise<{ offer: PropertyOffer; score: number; details: string }[]>;
+  
+  getNotifications(userId: string): Promise<Notification[]>;
+  getUnreadNotificationCount(userId: string): Promise<number>;
+  createNotification(notification: InsertNotification): Promise<Notification>;
+  markNotificationRead(id: string): Promise<Notification | undefined>;
+  markAllNotificationsRead(userId: string): Promise<number>;
+  deleteNotification(id: string): Promise<boolean>;
+  
+  getFollowUps(userId?: string): Promise<FollowUp[]>;
+  getFollowUp(id: string): Promise<FollowUp | undefined>;
+  getFollowUpsByLead(leadId: string): Promise<FollowUp[]>;
+  getUpcomingFollowUps(userId: string, days?: number): Promise<FollowUp[]>;
+  createFollowUp(followUp: InsertFollowUp): Promise<FollowUp>;
+  updateFollowUp(id: string, followUp: Partial<InsertFollowUp>): Promise<FollowUp | undefined>;
+  completeFollowUp(id: string, notes?: string): Promise<FollowUp | undefined>;
+  deleteFollowUp(id: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -143,6 +161,8 @@ export class MemStorage implements IStorage {
   private propertyOffers: Map<string, PropertyOffer> = new Map();
   private propertyRequests: Map<string, PropertyRequest> = new Map();
   private propertyMatches: Map<string, PropertyMatch> = new Map();
+  private notifications: Map<string, Notification> = new Map();
+  private followUps: Map<string, FollowUp> = new Map();
 
   constructor() {
     this.seedData();
@@ -231,6 +251,29 @@ export class MemStorage implements IStorage {
       { id: "offer-3", city: "riyadh", cityAr: "الرياض", district: "Al Malqa", districtAr: "الملقا", propertyType: "residential", listingType: "sale", price: "4500000", area: 520, bedrooms: 6, bathrooms: 5, falLicenseNumber: null, brokerName: "خالد السبيعي", brokerPhone: "+966 54 555 1234", brokerEmail: null, developerName: "روشن", propertyCondition: "under_construction", description: "Modern villa in premium location", descriptionAr: "فيلا عصرية في موقع مميز", images: null, primaryImageIndex: 0, reviewStatus: "needs_revision", reviewNotes: "Please add FAL license number", reviewedBy: "user-1", reviewedAt: now, submittedBy: null, createdAt: twoWeeksAgo, updatedAt: now },
     ];
     propertyOffers.forEach(offer => this.propertyOffers.set(offer.id, offer));
+
+    const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+    const threeHoursAgo = new Date(now.getTime() - 3 * 60 * 60 * 1000);
+    const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    
+    const notifications: Notification[] = [
+      { id: "notif-1", userId: "user-1", type: "new_lead", title: "New lead from website", titleAr: "عميل جديد من الموقع", message: "Khalid bin Salman is interested in office properties", messageAr: "خالد بن سلمان مهتم بالعقارات المكتبية", entityType: "lead", entityId: "lead-3", isRead: false, priority: "high", createdAt: now, readAt: null },
+      { id: "notif-2", userId: "user-1", type: "new_message", title: "New WhatsApp message", titleAr: "رسالة واتساب جديدة", message: "Mohammed Al-Rashid: What is the payment plan?", messageAr: "محمد الراشد: ما هي خطة الدفع؟", entityType: "conversation", entityId: "conv-1", isRead: false, priority: "normal", createdAt: oneHourAgo, readAt: null },
+      { id: "notif-3", userId: "user-1", type: "deal_update", title: "Deal moved to Negotiation", titleAr: "انتقلت الصفقة إلى مرحلة التفاوض", message: "Marina apartment deal with Mohammed Al-Rashid", messageAr: "صفقة شقة المارينا مع محمد الراشد", entityType: "deal", entityId: "deal-1", isRead: false, priority: "normal", createdAt: threeHoursAgo, readAt: null },
+      { id: "notif-4", userId: "user-1", type: "offer_update", title: "Property offer needs revision", titleAr: "عرض العقار يحتاج مراجعة", message: "Al Malqa villa offer requires FAL license number", messageAr: "عرض فيلا الملقا يتطلب رقم ترخيص فال", entityType: "offer", entityId: "offer-3", isRead: true, priority: "normal", createdAt: yesterday, readAt: yesterday },
+      { id: "notif-5", userId: "user-1", type: "follow_up_reminder", title: "Follow-up reminder", titleAr: "تذكير بالمتابعة", message: "Call Sarah Ahmed about apartment viewing", messageAr: "اتصل بسارة أحمد بخصوص معاينة الشقة", entityType: "lead", entityId: "lead-2", isRead: true, priority: "high", createdAt: yesterday, readAt: yesterday },
+    ];
+    notifications.forEach(notif => this.notifications.set(notif.id, notif));
+
+    const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    const inThreeDays = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
+    
+    const followUps: FollowUp[] = [
+      { id: "fu-1", userId: "user-1", leadId: "lead-1", dealId: "deal-1", propertyId: "prop-1", type: "call", title: "Call about payment plan", titleAr: "مكالمة بخصوص خطة الدفع", description: "Discuss payment options for Marina apartment", descriptionAr: "مناقشة خيارات الدفع لشقة المارينا", scheduledAt: tomorrow, reminderAt: new Date(tomorrow.getTime() - 60 * 60 * 1000), status: "pending", priority: "high", notes: null, completedAt: null, createdAt: now, updatedAt: now },
+      { id: "fu-2", userId: "user-1", leadId: "lead-2", dealId: null, propertyId: null, type: "meeting", title: "Property viewing with Sarah", titleAr: "معاينة عقار مع سارة", description: "Show available apartments in Dubai Marina", descriptionAr: "عرض الشقق المتاحة في دبي مارينا", scheduledAt: inThreeDays, reminderAt: new Date(inThreeDays.getTime() - 2 * 60 * 60 * 1000), status: "pending", priority: "normal", notes: null, completedAt: null, createdAt: now, updatedAt: now },
+      { id: "fu-3", userId: "user-1", leadId: "lead-4", dealId: "deal-2", propertyId: "prop-3", type: "site_visit", title: "Penthouse site visit", titleAr: "زيارة موقع البنتهاوس", description: "Tour of Downtown penthouse with Fatima", descriptionAr: "جولة في بنتهاوس وسط المدينة مع فاطمة", scheduledAt: yesterday, reminderAt: null, status: "completed", priority: "high", notes: "Client loved the view, proceeding with negotiation", completedAt: yesterday, createdAt: oneWeekAgo, updatedAt: yesterday },
+    ];
+    followUps.forEach(fu => this.followUps.set(fu.id, fu));
   }
 
   async getUser(id: string): Promise<User | undefined> {
@@ -246,8 +289,15 @@ export class MemStorage implements IStorage {
     const user: User = { 
       ...insertUser, 
       id,
-      role: insertUser.role ?? "agent",
+      role: insertUser.role ?? "sales",
       avatar: insertUser.avatar ?? null,
+      fullNameAr: insertUser.fullNameAr ?? null,
+      officeId: insertUser.officeId ?? null,
+      phone: insertUser.phone ?? null,
+      email: insertUser.email ?? null,
+      isActive: insertUser.isActive ?? true,
+      createdAt: new Date(),
+      lastLoginAt: null,
     };
     this.users.set(id, user);
     return user;
@@ -997,6 +1047,158 @@ export class MemStorage implements IStorage {
     }
 
     return matches.sort((a, b) => b.score - a.score);
+  }
+
+  async getNotifications(userId: string): Promise<Notification[]> {
+    return Array.from(this.notifications.values())
+      .filter(n => n.userId === userId)
+      .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+  }
+
+  async getUnreadNotificationCount(userId: string): Promise<number> {
+    return Array.from(this.notifications.values())
+      .filter(n => n.userId === userId && !n.isRead).length;
+  }
+
+  async createNotification(insertNotification: InsertNotification): Promise<Notification> {
+    const id = randomUUID();
+    const notification: Notification = {
+      ...insertNotification,
+      id,
+      createdAt: new Date(),
+      isRead: false,
+      readAt: null,
+      titleAr: insertNotification.titleAr ?? null,
+      messageAr: insertNotification.messageAr ?? null,
+      entityType: insertNotification.entityType ?? null,
+      entityId: insertNotification.entityId ?? null,
+      priority: insertNotification.priority ?? "normal",
+    };
+    this.notifications.set(id, notification);
+    return notification;
+  }
+
+  async markNotificationRead(id: string): Promise<Notification | undefined> {
+    const notification = this.notifications.get(id);
+    if (!notification) return undefined;
+    const updated = { ...notification, isRead: true, readAt: new Date() };
+    this.notifications.set(id, updated);
+    return updated;
+  }
+
+  async markAllNotificationsRead(userId: string): Promise<number> {
+    let count = 0;
+    const entries = Array.from(this.notifications.entries());
+    for (let i = 0; i < entries.length; i++) {
+      const [id, notification] = entries[i];
+      if (notification.userId === userId && !notification.isRead) {
+        this.notifications.set(id, { ...notification, isRead: true, readAt: new Date() });
+        count++;
+      }
+    }
+    return count;
+  }
+
+  async deleteNotification(id: string): Promise<boolean> {
+    return this.notifications.delete(id);
+  }
+
+  async getFollowUps(userId?: string): Promise<FollowUp[]> {
+    let followUps = Array.from(this.followUps.values());
+    if (userId) {
+      followUps = followUps.filter(f => f.userId === userId);
+    }
+    return followUps.sort((a, b) => 
+      new Date(a.scheduledAt || 0).getTime() - new Date(b.scheduledAt || 0).getTime()
+    );
+  }
+
+  async getFollowUp(id: string): Promise<FollowUp | undefined> {
+    return this.followUps.get(id);
+  }
+
+  async getFollowUpsByLead(leadId: string): Promise<FollowUp[]> {
+    return Array.from(this.followUps.values())
+      .filter(f => f.leadId === leadId)
+      .sort((a, b) => new Date(a.scheduledAt || 0).getTime() - new Date(b.scheduledAt || 0).getTime());
+  }
+
+  async getUpcomingFollowUps(userId: string, days: number = 7): Promise<FollowUp[]> {
+    const now = new Date();
+    const futureDate = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
+    return Array.from(this.followUps.values())
+      .filter(f => 
+        f.userId === userId && 
+        f.status === "pending" &&
+        new Date(f.scheduledAt) >= now &&
+        new Date(f.scheduledAt) <= futureDate
+      )
+      .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime());
+  }
+
+  async createFollowUp(insertFollowUp: InsertFollowUp): Promise<FollowUp> {
+    const id = randomUUID();
+    const followUp: FollowUp = {
+      ...insertFollowUp,
+      id,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      completedAt: null,
+      status: insertFollowUp.status ?? "pending",
+      priority: insertFollowUp.priority ?? "normal",
+      titleAr: insertFollowUp.titleAr ?? null,
+      description: insertFollowUp.description ?? null,
+      descriptionAr: insertFollowUp.descriptionAr ?? null,
+      leadId: insertFollowUp.leadId ?? null,
+      dealId: insertFollowUp.dealId ?? null,
+      propertyId: insertFollowUp.propertyId ?? null,
+      reminderAt: insertFollowUp.reminderAt ?? null,
+      notes: insertFollowUp.notes ?? null,
+    };
+    this.followUps.set(id, followUp);
+    
+    await this.createActivity({
+      type: "follow_up_created",
+      entityType: "follow_up",
+      entityId: id,
+      description: `Follow-up scheduled: ${followUp.title}`,
+    });
+    
+    return followUp;
+  }
+
+  async updateFollowUp(id: string, updates: Partial<InsertFollowUp>): Promise<FollowUp | undefined> {
+    const followUp = this.followUps.get(id);
+    if (!followUp) return undefined;
+    const updated = { ...followUp, ...updates, updatedAt: new Date() };
+    this.followUps.set(id, updated);
+    return updated;
+  }
+
+  async completeFollowUp(id: string, notes?: string): Promise<FollowUp | undefined> {
+    const followUp = this.followUps.get(id);
+    if (!followUp) return undefined;
+    const updated = { 
+      ...followUp, 
+      status: "completed" as const, 
+      completedAt: new Date(), 
+      updatedAt: new Date(),
+      notes: notes ?? followUp.notes 
+    };
+    this.followUps.set(id, updated);
+    
+    await this.createActivity({
+      type: "follow_up_completed",
+      entityType: "follow_up",
+      entityId: id,
+      description: `Follow-up completed: ${followUp.title}`,
+    });
+    
+    return updated;
+  }
+
+  async deleteFollowUp(id: string): Promise<boolean> {
+    return this.followUps.delete(id);
   }
 }
 
