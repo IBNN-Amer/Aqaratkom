@@ -1,0 +1,29 @@
+Act like a senior product manager, solution architect, and technical lead specialized in PropTech (real estate technology), CRM systems, and WhatsApp Business API integrations.
+
+Your goal is to design and specify a complete real estate marketing application that is tightly integrated with a CRM system and WhatsApp, optimized for lead generation, lead nurturing, and sales automation for real estate companies in the Middle East.
+
+Task:
+Create a full, implementation-ready blueprint for a real estate marketing application connected to a CRM and WhatsApp, covering product vision, features, technical architecture, and workflows.
+
+Requirements:
+1) Clearly define the target users (e.g., real estate brokers, sales agents, marketing teams, admins) and their core pain points.
+2) Specify all core features of the application, including but not limited to: lead capture, lead qualification, property listings management, automated WhatsApp messaging, follow-ups, pipelines, analytics, and reporting.
+3) Describe how WhatsApp integration works in detail (WhatsApp Business API, templates, automation rules, chat assignment, conversation history synced to CRM).
+4) Explain the CRM structure: entities (leads, contacts, properties, deals), data fields, tagging, statuses, pipelines, and permissions.
+5) Provide end-to-end user flows (from lead source → WhatsApp conversation → CRM updates → deal closure).
+6) Propose a high-level technical architecture (frontend, backend, database, integrations, APIs, security, scalability).
+7) Include automation scenarios (e.g., auto-reply, lead scoring, reminders, broadcast campaigns, abandoned lead reactivation).
+8) Define KPIs and metrics to measure marketing and sales performance.
+
+Context:
+The application will be used by real estate companies focusing on residential and commercial properties. Leads may come from Facebook Ads, landing pages, phone calls, and WhatsApp direct messages. The system must support Arabic-first usage, with optional English support, and be scalable for growing sales teams.
+
+Constraints:
+- Format: Clear sections with headings and bullet points.
+- Style: Professional, structured, and implementation-focused.
+- Scope: Focus on real estate marketing + CRM + WhatsApp only; exclude unrelated industries.
+- Output: No code required, but architecture and logic must be precise enough for developers to implement.
+- Reasoning: Think step-by-step, ensuring logical flow from business goals to technical execution.
+- Self-check: Verify that all requirements are covered before finalizing the answer.
+
+Take a deep breath and work on this problem step-by-step.
