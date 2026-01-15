@@ -14,7 +14,8 @@ import {
   PlusCircle,
   Building,
   UserCheck,
-  Search
+  Search,
+  Bot
 } from "lucide-react";
 import {
   Sidebar,
@@ -43,6 +44,7 @@ const mainNavItems = [
   { icon: Building2, labelKey: "nav.properties", href: "/properties" },
   { icon: Handshake, labelKey: "nav.deals", href: "/deals" },
   { icon: MessageCircle, labelKey: "nav.whatsapp", href: "/whatsapp" },
+  { icon: Bot, labelKey: "nav.chatbotDemo", href: "/chatbot-demo" },
 ];
 
 const offersNavItems = [

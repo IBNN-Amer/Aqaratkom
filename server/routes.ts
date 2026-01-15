@@ -1121,5 +1121,32 @@ export async function registerRoutes(
     res.json(status);
   });
 
+  /**
+   * POST /api/whatsapp/demo - Demo/test endpoint for chatbot
+   * Tests the chatbot without needing real WhatsApp credentials
+   */
+  app.post("/api/whatsapp/demo", (req, res) => {
+    try {
+      const { message, userId } = req.body;
+      
+      if (!message) {
+        return res.status(400).json({ error: "Message is required" });
+      }
+      
+      const testUserId = userId || "demo-user-" + Date.now();
+      const botReply = handleBotMessage(testUserId, message);
+      
+      res.json({ 
+        success: true, 
+        userId: testUserId,
+        userMessage: message,
+        botReply 
+      });
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : "Demo failed";
+      res.status(500).json({ error: errorMsg });
+    }
+  });
+
   return httpServer;
 }
