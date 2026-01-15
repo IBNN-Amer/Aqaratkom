@@ -1,0 +1,88 @@
+from flask import Flask, request, jsonify
+import os
+
+app = Flask(__name__)
+
+# قاعدة بيانات مؤقتة لتخزين الطلبات (في الذاكرة)
+requests_db = []
+offers_db = []
+
+@app.route('/')
+def home():
+    return "WhatsApp Real Estate Bot is running!"
+
+@app.route('/webhook', methods=['POST'])
+def webhook():
+    data = request.json
+    # هذا مثال للهيكل المتوقع من WhatsApp API
+    user_id = data.get('from')
+    message = data.get('body').lower()
+
+    response = handle_message(user_id, message)
+    return jsonify({"reply": response})
+
+def handle_message(user_id, message):
+    # البحث عن حالة المستخدم الحالية
+    user_state = next((r for r in requests_db if r['user'] == user_id), None)
+    
+    if not user_state:
+        # بداية المحادثة
+        requests_db.append({"user": user_id, "step": 1, "data": {}})
+        return ("مرحبًا! اختر نوع الطلب:\n"
+                "1. طلب شراء\n"
+                "2. طلب إيجار\n"
+                "3. عرض عقار للبيع\n"
+                "4. عرض عقار للإيجار")
+    
+    step = user_state['step']
+    data = user_state['data']
+
+    # خطوات جمع بيانات العميل
+    if step == 1:
+        if message in ["1", "2"]:
+            data['type'] = "طلب شراء" if message == "1" else "طلب إيجار"
+            user_state['step'] = 2
+            return "اختر نوع الوحدة:\n1. شقة\n2. فيلا\n3. مكتب\n4. أرض"
+        elif message in ["3", "4"]:
+            data['type'] = "عرض بيع" if message == "3" else "عرض إيجار"
+            user_state['step'] = 10
+            return "أرسل بيانات العقار: النوع، السعر، المساحة، الموقع، التفاصيل الإضافية، وصورة العقار"
+        else:
+            return "اختر رقم صحيح من 1 إلى 4."
+
+    elif step == 2:
+        types = {"1": "شقة", "2": "فيلا", "3": "مكتب", "4": "أرض"}
+        if message in types:
+            data['unit_type'] = types[message]
+            user_state['step'] = 3
+            return "ما هي ميزانيتك المتوقعة؟"
+        else:
+            return "اختر رقم صحيح لنوع الوحدة."
+
+    elif step == 3:
+        data['budget'] = message
+        user_state['step'] = 4
+        return "ما هي المساحة المطلوبة؟ (متر²)"
+
+    elif step == 4:
+        data['area'] = message
+        user_state['step'] = 5
+        return "هل هناك تفاصيل إضافية تريدنا معرفتها؟ (عدد غرف النوم، الحمامات، الطابق، ملاحظات)"
+
+    elif step == 5:
+        data['details'] = message
+        # إنهاء جمع بيانات الطلب
+        requests_db.remove(user_state)
+        return f"تم تسجيل طلبك بنجاح:\n{data}"
+
+    elif step == 10:
+        # جمع بيانات العقار للعرض
+        offers_db.append({"user": user_id, "offer_data": message})
+        requests_db.remove(user_state)
+        return "تم استلام بيانات العقار بنجاح وسيتم نشره للعملاء المهتمين."
+
+    else:
+        return "حدث خطأ، حاول مرة أخرى."
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=3000)

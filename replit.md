@@ -85,6 +85,20 @@ Preferred communication style: Simple, everyday language.
 - **Service Module**: `server/whatsapp.ts` - Contains all WhatsApp API functions
 - **Security Features**: Webhook signature verification (X-Hub-Signature-256), message deduplication
 
+### WhatsApp Chatbot (Auto-Reply)
+- **Bot Module**: `server/whatsapp-bot.ts` - Conversational flow handler
+- **Features**:
+  - Automatic greeting and menu presentation
+  - Property request flow (buy/rent): collects unit type, budget, area, and details
+  - Property offer flow (sell/rent out): collects property information
+  - Step-by-step data collection with Arabic responses
+  - Cancel command support (send "0" or "إلغاء")
+- **Menu Options**:
+  1. طلب شراء (Purchase Request)
+  2. طلب إيجار (Rental Request)
+  3. عرض عقار للبيع (Property for Sale)
+  4. عرض عقار للإيجار (Property for Rent)
+
 ## External Dependencies
 
 ### Database

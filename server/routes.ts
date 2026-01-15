@@ -14,6 +14,7 @@ import {
   getWhatsAppStatus,
   type WhatsAppWebhookPayload 
 } from "./whatsapp";
+import { handleBotMessage } from "./whatsapp-bot";
 
 function validateBody<T extends z.ZodSchema>(schema: T, body: unknown): z.infer<T> {
   const result = schema.safeParse(body);
@@ -1049,6 +1050,25 @@ export async function registerRoutes(
           entityId: conversation.id,
           isRead: false,
         });
+        
+        const botReply = handleBotMessage(msg.from, msg.text);
+        
+        if (botReply) {
+          const sendResult = await sendWhatsAppMessage(msg.from, botReply);
+          
+          if (sendResult.success) {
+            await storage.createMessage({
+              conversationId: conversation.id,
+              content: botReply,
+              direction: "outgoing",
+              messageType: "text",
+              status: "sent",
+            });
+            console.log(`[WhatsApp Bot] Sent reply to ${msg.from}`);
+          } else {
+            console.error(`[WhatsApp Bot] Failed to send reply: ${sendResult.error}`);
+          }
+        }
       }
 
       res.status(200).send("OK");
