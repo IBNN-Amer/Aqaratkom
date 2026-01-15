@@ -71,6 +71,20 @@ Preferred communication style: Simple, everyday language.
 - `GET /api/dashboard/stats` - Dashboard KPIs
 - `GET /api/analytics/*` - Analytics data
 
+### WhatsApp Cloud API Integration
+- `GET /webhook` - Meta webhook verification endpoint
+- `POST /webhook` - Receive incoming WhatsApp messages (with signature verification and idempotency)
+- `POST /api/whatsapp/send` - Send WhatsApp messages (with Zod validation)
+- `GET /api/whatsapp/status` - Check WhatsApp integration status
+- **API Version**: v18.0
+- **Required Secrets**: 
+  - `WHATSAPP_TOKEN` - WhatsApp Business API access token from Meta
+  - `WHATSAPP_PHONE_NUMBER_ID` - Phone Number ID from WhatsApp Business account
+  - `WHATSAPP_VERIFY_TOKEN` - Custom token for webhook verification
+  - `WHATSAPP_APP_SECRET` - Meta App Secret for webhook signature verification (optional but recommended)
+- **Service Module**: `server/whatsapp.ts` - Contains all WhatsApp API functions
+- **Security Features**: Webhook signature verification (X-Hub-Signature-256), message deduplication
+
 ## External Dependencies
 
 ### Database

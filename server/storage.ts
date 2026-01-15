@@ -27,6 +27,7 @@ export interface IStorage {
   
   getLeads(): Promise<Lead[]>;
   getLead(id: string): Promise<Lead | undefined>;
+  getLeadByPhone(phone: string): Promise<Lead | undefined>;
   createLead(lead: InsertLead): Promise<Lead>;
   updateLead(id: string, lead: Partial<InsertLead>): Promise<Lead | undefined>;
   deleteLead(id: string): Promise<boolean>;
@@ -45,6 +46,7 @@ export interface IStorage {
   
   getConversations(): Promise<Conversation[]>;
   getConversation(id: string): Promise<Conversation | undefined>;
+  getConversationByPhone(phone: string): Promise<Conversation | undefined>;
   createConversation(conversation: InsertConversation): Promise<Conversation>;
   updateConversation(id: string, conversation: Partial<InsertConversation>): Promise<Conversation | undefined>;
   
@@ -333,6 +335,17 @@ export class MemStorage implements IStorage {
     return this.leads.get(id);
   }
 
+  async getLeadByPhone(phone: string): Promise<Lead | undefined> {
+    const normalizedPhone = phone.replace(/[\s\-\(\)]/g, "");
+    for (const lead of Array.from(this.leads.values())) {
+      const leadPhone = lead.phone?.replace(/[\s\-\(\)]/g, "") || "";
+      if (leadPhone === normalizedPhone || leadPhone.endsWith(normalizedPhone) || normalizedPhone.endsWith(leadPhone)) {
+        return lead;
+      }
+    }
+    return undefined;
+  }
+
   async createLead(insertLead: InsertLead): Promise<Lead> {
     const id = randomUUID();
     const lead: Lead = { 
@@ -510,6 +523,18 @@ export class MemStorage implements IStorage {
 
   async getConversation(id: string): Promise<Conversation | undefined> {
     return this.conversations.get(id);
+  }
+
+  async getConversationByPhone(phone: string): Promise<Conversation | undefined> {
+    const lead = await this.getLeadByPhone(phone);
+    if (!lead) return undefined;
+    
+    for (const conversation of Array.from(this.conversations.values())) {
+      if (conversation.leadId === lead.id) {
+        return conversation;
+      }
+    }
+    return undefined;
   }
 
   async createConversation(insertConversation: InsertConversation): Promise<Conversation> {

@@ -4,6 +4,16 @@ import { storage } from "./storage";
 import { insertLeadSchema, insertPropertySchema, insertDealSchema, insertMessageTemplateSchema, insertMessageSchema, insertPropertyOfferSchema, insertRealEstateOfficeSchema, insertSalesAgentSchema, insertPropertyRequestSchema, insertPropertyMatchSchema, insertNotificationSchema, insertFollowUpSchema, insertCrmIntegrationSchema, insertCrmSyncJobSchema } from "@shared/schema";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
+import { 
+  verifyWebhook, 
+  verifyWebhookSignature,
+  isNewMessage,
+  parseWebhookMessages, 
+  extractContactInfo, 
+  sendWhatsAppMessage, 
+  getWhatsAppStatus,
+  type WhatsAppWebhookPayload 
+} from "./whatsapp";
 
 function validateBody<T extends z.ZodSchema>(schema: T, body: unknown): z.infer<T> {
   const result = schema.safeParse(body);
@@ -932,6 +942,163 @@ export async function registerRoutes(
     } catch (error) {
       res.status(500).json({ error: "Connection test failed" });
     }
+  });
+
+  // ============================================
+  // WhatsApp Cloud API Webhook Routes
+  // ============================================
+
+  /**
+   * GET /webhook - Webhook verification endpoint
+   * Called by Meta when setting up the webhook URL in the App Dashboard.
+   * Meta sends hub.mode, hub.verify_token, and hub.challenge as query parameters.
+   * We must verify the token matches and return the challenge to complete verification.
+   */
+  app.get("/webhook", (req, res) => {
+    const mode = req.query["hub.mode"] as string | undefined;
+    const token = req.query["hub.verify_token"] as string | undefined;
+    const challenge = req.query["hub.challenge"] as string | undefined;
+
+    const result = verifyWebhook(mode, token, challenge);
+    
+    if (result) {
+      res.status(200).send(result);
+    } else {
+      res.status(403).send("Verification failed");
+    }
+  });
+
+  /**
+   * POST /webhook - Receive incoming WhatsApp messages and status updates
+   * Meta sends webhook events here when messages are received or status changes occur.
+   * We must ALWAYS respond with 200 OK to acknowledge receipt, even if processing fails.
+   */
+  app.post("/webhook", async (req, res) => {
+    try {
+      const signature = req.headers["x-hub-signature-256"] as string | undefined;
+      const rawBody = req.rawBody instanceof Buffer ? req.rawBody.toString("utf8") : JSON.stringify(req.body);
+      
+      if (!verifyWebhookSignature(signature, rawBody)) {
+        console.warn("[WhatsApp] Webhook signature verification failed");
+        return res.status(200).send("OK");
+      }
+      
+      const payload = req.body as WhatsAppWebhookPayload;
+      
+      if (!payload || typeof payload !== "object") {
+        console.warn("[WhatsApp] Received empty or invalid webhook payload");
+        return res.status(200).send("OK");
+      }
+
+      const messages = parseWebhookMessages(payload);
+      const contactInfo = extractContactInfo(payload);
+
+      for (const msg of messages) {
+        if (!isNewMessage(msg.messageId)) {
+          console.log(`[WhatsApp] Skipping duplicate message: ${msg.messageId}`);
+          continue;
+        }
+        
+        console.log(`[WhatsApp] Processing message from ${msg.from}: ${msg.text}`);
+        
+        let conversation = await storage.getConversationByPhone(msg.from);
+        
+        if (!conversation) {
+          let lead = await storage.getLeadByPhone(msg.from);
+          
+          if (!lead) {
+            lead = await storage.createLead({
+              name: contactInfo?.name || `WhatsApp ${msg.from}`,
+              phone: msg.from,
+              email: "",
+              source: "whatsapp",
+              status: "new",
+              score: 50,
+              notes: `Created automatically from WhatsApp message. Message ID: ${msg.messageId}`,
+              assignedTo: "user-1",
+            });
+          }
+          
+          conversation = await storage.createConversation({
+            leadId: lead.id,
+            status: "open",
+            lastMessageAt: new Date(),
+          });
+        }
+        
+        await storage.createMessage({
+          conversationId: conversation.id,
+          content: msg.text,
+          direction: "incoming",
+          messageType: "text",
+          status: "delivered",
+        });
+        
+        await storage.updateConversation(conversation.id, {
+          lastMessageAt: new Date(),
+        } as any);
+        
+        await storage.createNotification({
+          userId: "user-1",
+          type: "new_message",
+          title: "New WhatsApp Message",
+          titleAr: "رسالة واتساب جديدة",
+          message: `Message from ${contactInfo?.name || msg.from}: ${msg.text.substring(0, 100)}`,
+          messageAr: `رسالة من ${contactInfo?.name || msg.from}: ${msg.text.substring(0, 100)}`,
+          entityType: "conversation",
+          entityId: conversation.id,
+          isRead: false,
+        });
+      }
+
+      res.status(200).send("OK");
+    } catch (error) {
+      console.error("[WhatsApp] Error processing webhook:", error);
+      res.status(200).send("OK");
+    }
+  });
+
+  const sendWhatsAppSchema = z.object({
+    phone: z.string().min(10).max(20).regex(/^\+?[0-9]+$/, "Invalid phone number format"),
+    message: z.string().min(1).max(4096, "Message too long (max 4096 characters)"),
+  });
+
+  /**
+   * POST /api/whatsapp/send - Send a WhatsApp message
+   * API endpoint to send messages to WhatsApp users
+   * Validates input using Zod schema
+   */
+  app.post("/api/whatsapp/send", async (req, res) => {
+    try {
+      const parseResult = sendWhatsAppSchema.safeParse(req.body);
+      
+      if (!parseResult.success) {
+        return res.status(400).json({ 
+          error: "Validation failed", 
+          details: fromZodError(parseResult.error).message 
+        });
+      }
+      
+      const { phone, message } = parseResult.data;
+      const result = await sendWhatsAppMessage(phone, message);
+      
+      if (result.success) {
+        res.json({ success: true, messageId: result.messageId });
+      } else {
+        res.status(500).json({ success: false, error: result.error });
+      }
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : "Failed to send message";
+      res.status(500).json({ error: errorMsg });
+    }
+  });
+
+  /**
+   * GET /api/whatsapp/status - Get WhatsApp integration status
+   */
+  app.get("/api/whatsapp/status", (req, res) => {
+    const status = getWhatsAppStatus();
+    res.json(status);
   });
 
   return httpServer;
