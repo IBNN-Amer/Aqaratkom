@@ -23,6 +23,7 @@ import SalesAgents from "@/pages/sales-agents";
 import PropertyRequests from "@/pages/property-requests";
 import PropertyMatches from "@/pages/property-matches";
 import ChatbotDemo from "@/pages/chatbot-demo";
+import FlowBuilder from "@/pages/flow-builder";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -43,6 +44,7 @@ function Router() {
       <Route path="/property-requests" component={PropertyRequests} />
       <Route path="/property-requests/:id/matches" component={PropertyMatches} />
       <Route path="/chatbot-demo" component={ChatbotDemo} />
+      <Route path="/flow-builder" component={FlowBuilder} />
       <Route component={NotFound} />
     </Switch>
   );

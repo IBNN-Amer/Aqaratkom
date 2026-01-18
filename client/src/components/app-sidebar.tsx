@@ -15,7 +15,8 @@ import {
   Building,
   UserCheck,
   Search,
-  Bot
+  Bot,
+  Workflow
 } from "lucide-react";
 import {
   Sidebar,
@@ -45,6 +46,7 @@ const mainNavItems = [
   { icon: Handshake, labelKey: "nav.deals", href: "/deals" },
   { icon: MessageCircle, labelKey: "nav.whatsapp", href: "/whatsapp" },
   { icon: Bot, labelKey: "nav.chatbotDemo", href: "/chatbot-demo" },
+  { icon: Workflow, labelKey: "nav.flowBuilder", href: "/flow-builder" },
 ];
 
 const offersNavItems = [

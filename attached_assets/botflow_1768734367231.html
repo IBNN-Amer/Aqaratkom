@@ -1,0 +1,1532 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام بناء تدفق المحادثة</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #25d366;
+            --primary-dark: #128c7e;
+            --secondary: #ff6b35;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --text-light: #64748b;
+            --border: #e2e8f0;
+            --shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            --radius: 12px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', 'Helvetica Neue', sans-serif;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text-main);
+            direction: rtl;
+            min-height: 100vh;
+        }
+
+        .flow-builder-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .builder-header {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-title h1 {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--text-main);
+            margin-bottom: 8px;
+        }
+
+        .header-title p {
+            color: var(--text-light);
+            font-size: 15px;
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 15px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border-radius: var(--radius);
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(37, 211, 102, 0.3);
+        }
+
+        .btn-secondary {
+            background: var(--secondary);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #e55a2b;
+            transform: translateY(-2px);
+        }
+
+        .btn-outline {
+            background: transparent;
+            color: var(--text-main);
+            border: 2px solid var(--border);
+        }
+
+        .btn-outline:hover {
+            background: var(--bg);
+            border-color: var(--primary);
+        }
+
+        /* Builder Layout */
+        .builder-layout {
+            display: grid;
+            grid-template-columns: 280px 1fr 280px;
+            gap: 25px;
+            height: calc(100vh - 150px);
+        }
+
+        /* Components Panel */
+        .components-panel {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 20px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            overflow-y: auto;
+        }
+
+        .panel-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .components-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .component-item {
+            background: #f8fafc;
+            border: 2px solid var(--border);
+            border-radius: var(--radius);
+            padding: 18px;
+            cursor: move;
+            transition: all 0.3s;
+            user-select: none;
+        }
+
+        .component-item:hover {
+            border-color: var(--primary);
+            transform: translateX(-5px);
+            background: white;
+        }
+
+        .component-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+
+        .component-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 18px;
+        }
+
+        .component-name {
+            font-weight: 600;
+            color: var(--text-main);
+            flex: 1;
+        }
+
+        .component-desc {
+            font-size: 13px;
+            color: var(--text-light);
+            line-height: 1.5;
+        }
+
+        /* Flow Canvas */
+        .flow-canvas-container {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .canvas-tabs {
+            display: flex;
+            background: #f8fafc;
+            border-bottom: 2px solid var(--border);
+            padding: 0 20px;
+        }
+
+        .canvas-tab {
+            padding: 18px 25px;
+            border: none;
+            background: transparent;
+            color: var(--text-light);
+            cursor: pointer;
+            font-weight: 600;
+            position: relative;
+            transition: all 0.3s;
+        }
+
+        .canvas-tab.active {
+            color: var(--primary);
+            background: white;
+        }
+
+        .canvas-tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            right: 0;
+            left: 0;
+            height: 3px;
+            background: var(--primary);
+        }
+
+        .flow-canvas {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+            background: #f8fafc;
+            position: relative;
+            min-height: 600px;
+        }
+
+        .flow-nodes-container {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+            min-width: 600px;
+        }
+
+        .flow-node {
+            background: white;
+            border-radius: var(--radius);
+            padding: 25px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            border-left: 5px solid var(--primary);
+            position: relative;
+            transition: all 0.3s;
+            animation: slideIn 0.5s ease;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .flow-node:hover {
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+            transform: translateY(-3px);
+        }
+
+        .node-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .node-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .node-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .node-action-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            border: 2px solid var(--border);
+            background: white;
+            color: var(--text-light);
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .node-action-btn:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .node-content {
+            color: var(--text-light);
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+
+        .node-connector {
+            position: absolute;
+            bottom: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 30px;
+            height: 30px;
+            background: var(--primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .node-connector:hover {
+            transform: translateX(-50%) scale(1.1);
+            box-shadow: 0 4px 12px rgba(37, 211, 102, 0.3);
+        }
+
+        /* Properties Panel */
+        .properties-panel {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            padding: 20px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+            overflow-y: auto;
+        }
+
+        .properties-content {
+            display: none;
+        }
+
+        .properties-content.active {
+            display: block;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--text-main);
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid var(--border);
+            border-radius: var(--radius);
+            font-size: 15px;
+            transition: all 0.3s;
+            background: white;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 211, 102, 0.1);
+        }
+
+        textarea.form-control {
+            min-height: 120px;
+            resize: vertical;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .quick-reply-item {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            align-items: center;
+        }
+
+        .quick-reply-item input {
+            flex: 1;
+        }
+
+        .add-btn {
+            width: 100%;
+            padding: 10px;
+            background: #f8fafc;
+            border: 2px dashed var(--border);
+            border-radius: var(--radius);
+            color: var(--text-light);
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .add-btn:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            background: rgba(37, 211, 102, 0.05);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-light);
+        }
+
+        .empty-state i {
+            font-size: 48px;
+            margin-bottom: 20px;
+            color: var(--border);
+        }
+
+        .empty-state h3 {
+            margin-bottom: 10px;
+            color: var(--text-main);
+        }
+
+        /* Connection lines */
+        .connection-line {
+            position: absolute;
+            background: var(--primary);
+            height: 2px;
+            z-index: 1;
+        }
+
+        /* Export JSON Viewer */
+        .json-viewer {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: var(--radius);
+            font-family: monospace;
+            font-size: 14px;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .builder-layout {
+                grid-template-columns: 250px 1fr;
+            }
+            .properties-panel {
+                grid-column: 1 / -1;
+                margin-top: 25px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .builder-layout {
+                grid-template-columns: 1fr;
+            }
+            .components-panel {
+                grid-column: 1 / -1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="flow-builder-container">
+        <div class="builder-header">
+            <div class="header-title">
+                <h1>محرر تدفق المحادثة العقارية</h1>
+                <p>اسحب وأفلت المكونات لبناء تدفق البوت</p>
+            </div>
+            <div class="header-controls">
+                <button class="btn btn-outline" onclick="exportFlow()">
+                    <i class="fas fa-download"></i> تصدير التدفق
+                </button>
+                <button class="btn btn-primary" onclick="saveFlow()">
+                    <i class="fas fa-save"></i> حفظ التدفق
+                </button>
+                <button class="btn btn-secondary" onclick="testFlow()">
+                    <i class="fas fa-play"></i> اختبار التدفق
+                </button>
+            </div>
+        </div>
+
+        <div class="builder-layout">
+            <!-- Left Panel: Components -->
+            <div class="components-panel">
+                <div class="panel-title">
+                    <i class="fas fa-puzzle-piece"></i>
+                    مكونات البوت
+                </div>
+                <div class="components-grid">
+                    <div class="component-item" draggable="true" data-type="welcome">
+                        <div class="component-header">
+                            <div class="component-icon">
+                                <i class="fas fa-door-open"></i>
+                            </div>
+                            <div class="component-name">رسالة الترحيب</div>
+                        </div>
+                        <div class="component-desc">
+                            أول رسالة يراها العميل عند بدء المحادثة
+                        </div>
+                    </div>
+
+                    <div class="component-item" draggable="true" data-type="text">
+                        <div class="component-header">
+                            <div class="component-icon">
+                                <i class="fas fa-font"></i>
+                            </div>
+                            <div class="component-name">رسالة نصية</div>
+                        </div>
+                        <div class="component-desc">
+                            إرسال نص للعميل مع تنسيق متقدم
+                        </div>
+                    </div>
+
+                    <div class="component-item" draggable="true" data-type="quick_replies">
+                        <div class="component-header">
+                            <div class="component-icon">
+                                <i class="fas fa-th-large"></i>
+                            </div>
+                            <div class="component-name">أزرار سريعة</div>
+                        </div>
+                        <div class="component-desc">
+                            قائمة أزرار للاختيار السريع
+                        </div>
+                    </div>
+
+                    <div class="component-item" draggable="true" data-type="input">
+                        <div class="component-header">
+                            <div class="component-icon">
+                                <i class="fas fa-keyboard"></i>
+                            </div>
+                            <div class="component-name">طلب إدخال</div>
+                        </div>
+                        <div class="component-desc">
+                            طلب معلومات محددة من العميل
+                        </div>
+                    </div>
+
+                    <div class="component-item" draggable="true" data-type="condition">
+                        <div class="component-header">
+                            <div class="component-icon">
+                                <i class="fas fa-code-branch"></i>
+                            </div>
+                            <div class="component-name">شرط</div>
+                        </div>
+                        <div class="component-desc">
+                            اتخاذ قرار بناء على إدخال العميل
+                        </div>
+                    </div>
+
+                    <div class="component-item" draggable="true" data-type="database">
+                        <div class="component-header">
+                            <div class="component-icon">
+                                <i class="fas fa-search"></i>
+                            </div>
+                            <div class="component-name">بحث عقارات</div>
+                        </div>
+                        <div class="component-desc">
+                            البحث في قاعدة البيانات عن عقارات مطابقة
+                        </div>
+                    </div>
+
+                    <div class="component-item" draggable="true" data-type="results">
+                        <div class="component-header">
+                            <div class="component-icon">
+                                <i class="fas fa-list-alt"></i>
+                            </div>
+                            <div class="component-name">عرض النتائج</div>
+                        </div>
+                        <div class="component-desc">
+                            إظهار العقارات المطابقة للعميل
+                        </div>
+                    </div>
+
+                    <div class="component-item" draggable="true" data-type="api">
+                        <div class="component-header">
+                            <div class="component-icon">
+                                <i class="fas fa-plug"></i>
+                            </div>
+                            <div class="component-name">استدعاء API</div>
+                        </div>
+                        <div class="component-desc">
+                            التكامل مع خدمات خارجية أو أنظمة أخرى
+                        </div>
+                    </div>
+
+                    <div class="component-item" draggable="true" data-type="delay">
+                        <div class="component-header">
+                            <div class="component-icon">
+                                <i class="fas fa-clock"></i>
+                            </div>
+                            <div class="component-name">تأخير</div>
+                        </div>
+                        <div class="component-desc">
+                            انتظار فترة زمنية قبل المتابعة
+                        </div>
+                    </div>
+
+                    <div class="component-item" draggable="true" data-type="transfer">
+                        <div class="component-header">
+                            <div class="component-icon">
+                                <i class="fas fa-user-tie"></i>
+                            </div>
+                            <div class="component-name">تحويل لمسوّق</div>
+                        </div>
+                        <div class="component-desc">
+                            تحويل المحادثة لدعم بشري
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Center Panel: Flow Canvas -->
+            <div class="flow-canvas-container">
+                <div class="canvas-tabs">
+                    <button class="canvas-tab active" data-tab="flow">تدفق المحادثة</button>
+                    <button class="canvas-tab" data-tab="test">اختبار التدفق</button>
+                    <button class="canvas-tab" data-tab="export">تصدير JSON</button>
+                </div>
+                
+                <div class="flow-canvas">
+                    <div id="flow-tab" class="canvas-content active">
+                        <div class="flow-nodes-container" id="flow-nodes">
+                            <!-- Flow nodes will be added here -->
+                        </div>
+                        
+                        <div id="empty-state" class="empty-state">
+                            <i class="fas fa-project-diagram"></i>
+                            <h3>ابداء بناء تدفق المحادثة</h3>
+                            <p>اسحب المكونات من اليسار وأفلتها هنا لبدء البناء</p>
+                            <button class="btn btn-primary" style="margin-top: 20px;" onclick="addSampleFlow()">
+                                <i class="fas fa-magic"></i> إنشاء تدفق نموذجي
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="test-tab" class="canvas-content" style="display: none;">
+                        <div style="padding: 20px;">
+                            <h3 style="margin-bottom: 20px;">اختبار تدفق المحادثة</h3>
+                            <div style="background: #f8fafc; border-radius: var(--radius); padding: 25px;">
+                                <div id="test-conversation" style="height: 400px; overflow-y: auto; margin-bottom: 20px; padding: 15px; background: white; border-radius: var(--radius); border: 1px solid var(--border);">
+                                    <!-- Test messages will appear here -->
+                                </div>
+                                <div style="display: flex; gap: 10px;">
+                                    <input type="text" id="test-message-input" placeholder="اكتب رسالة للاختبار..." class="form-control" style="flex: 1;">
+                                    <button class="btn btn-primary" onclick="sendTestMessage()">
+                                        <i class="fas fa-paper-plane"></i> إرسال
+                                    </button>
+                                </div>
+                                <div style="margin-top: 20px; display: flex; gap: 10px;">
+                                    <button class="btn btn-outline" onclick="runTestScenario('search')">
+                                        اختبار البحث
+                                    </button>
+                                    <button class="btn btn-outline" onclick="runTestScenario('property_listing')">
+                                        اختبار العرض
+                                    </button>
+                                    <button class="btn btn-outline" onclick="runTestScenario('free_text')">
+                                        اختبار النص الحر
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="export-tab" class="canvas-content" style="display: none;">
+                        <div style="padding: 20px;">
+                            <h3 style="margin-bottom: 20px;">تصدير تدفق البوت</h3>
+                            <div class="json-viewer" id="json-output">
+                                {/* JSON will be displayed here */}
+                            </div>
+                            <div style="margin-top: 20px; display: flex; gap: 10px;">
+                                <button class="btn btn-primary" onclick="copyJSON()">
+                                    <i class="fas fa-copy"></i> نسخ JSON
+                                </button>
+                                <button class="btn btn-outline" onclick="downloadJSON()">
+                                    <i class="fas fa-file-download"></i> تحميل كملف
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel: Properties -->
+            <div class="properties-panel">
+                <div class="panel-title">
+                    <i class="fas fa-cog"></i>
+                    خصائص المكون
+                </div>
+                <div id="empty-properties" class="empty-state" style="padding: 40px 20px;">
+                    <i class="fas fa-mouse-pointer"></i>
+                    <h3>اختر مكوناً</h3>
+                    <p>اضغط على أي مكون في التدفق لتعديل خصائصه</p>
+                </div>
+                
+                <!-- Welcome Message Properties -->
+                <div id="welcome-properties" class="properties-content">
+                    <div class="form-group">
+                        <label class="form-label">نص رسالة الترحيب</label>
+                        <textarea class="form-control" id="welcome-text" rows="4">مرحباً بك في مكتبنا العقاري 🏠
+كيف يمكنني مساعدتك اليوم؟</textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">أزرار الرد السريع</label>
+                        <div id="welcome-buttons">
+                            <div class="quick-reply-item">
+                                <input type="text" class="form-control" value="🔍 البحث عن عقار">
+                                <button class="node-action-btn" onclick="removeQuickReply(this)"><i class="fas fa-times"></i></button>
+                            </div>
+                            <div class="quick-reply-item">
+                                <input type="text" class="form-control" value="🏢 عرض عقاري">
+                                <button class="node-action-btn" onclick="removeQuickReply(this)"><i class="fas fa-times"></i></button>
+                            </div>
+                            <div class="quick-reply-item">
+                                <input type="text" class="form-control" value="📞 التحدث مع مسوّق">
+                                <button class="node-action-btn" onclick="removeQuickReply(this)"><i class="fas fa-times"></i></button>
+                            </div>
+                        </div>
+                        <button class="add-btn" onclick="addQuickReply('welcome')">
+                            <i class="fas fa-plus"></i> إضافة زر
+                        </button>
+                    </div>
+                    <button class="btn btn-primary" onclick="updateNodeProperties()" style="width: 100%;">
+                        <i class="fas fa-save"></i> حفظ التغييرات
+                    </button>
+                </div>
+
+                <!-- Text Message Properties -->
+                <div id="text-properties" class="properties-content">
+                    <div class="form-group">
+                        <label class="form-label">نص الرسالة</label>
+                        <textarea class="form-control" id="text-message" rows="4">أهلاً! سأساعدك في البحث عن العقار المناسب.</textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">متغيرات ديناميكية</label>
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="var-name">
+                            <label for="var-name">اسم العميل</label>
+                        </div>
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="var-property-type">
+                            <label for="var-property-type">نوع العقار</label>
+                        </div>
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="var-location">
+                            <label for="var-location">الموقع</label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Replies Properties -->
+                <div id="quick_replies-properties" class="properties-content">
+                    <div class="form-group">
+                        <label class="form-label">النص قبل الأزرار</label>
+                        <input type="text" class="form-control" id="quick-replies-text" value="اختر من القائمة التالية:">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">الأزوار</label>
+                        <div id="quick-replies-buttons">
+                            <div class="quick-reply-item">
+                                <input type="text" class="form-control" value="شقة">
+                                <button class="node-action-btn" onclick="removeQuickReply(this)"><i class="fas fa-times"></i></button>
+                            </div>
+                            <div class="quick-reply-item">
+                                <input type="text" class="form-control" value="فيلا">
+                                <button class="node-action-btn" onclick="removeQuickReply(this)"><i class="fas fa-times"></i></button>
+                            </div>
+                            <div class="quick-reply-item">
+                                <input type="text" class="form-control" value="محل تجاري">
+                                <button class="node-action-btn" onclick="removeQuickReply(this)"><i class="fas fa-times"></i></button>
+                            </div>
+                        </div>
+                        <button class="add-btn" onclick="addQuickReply('quick_replies')">
+                            <i class="fas fa-plus"></i> إضافة زر
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Input Properties -->
+                <div id="input-properties" class="properties-content">
+                    <div class="form-group">
+                        <label class="form-label">سؤال الطلب</label>
+                        <input type="text" class="form-control" id="input-question" value="ما نوع العقار الذي تبحث عنه؟">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">نوع الإدخال</label>
+                        <select class="form-control" id="input-type">
+                            <option value="text">نص حر</option>
+                            <option value="number">رقم</option>
+                            <option value="phone">رقم هاتف</option>
+                            <option value="email">بريد إلكتروني</option>
+                            <option value="location">موقع</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">اسم المتغير (للحفظ)</label>
+                        <input type="text" class="form-control" id="input-variable" placeholder="مثال: property_type">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">رسالة الخطأ</label>
+                        <input type="text" class="form-control" id="input-error" value="الرجاء إدخال قيمة صحيحة">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let flowData = {
+            nodes: [],
+            connections: [],
+            settings: {
+                language: 'ar',
+                timezone: '+3',
+                working_hours: '8:00-22:00'
+            }
+        };
+
+        let selectedNode = null;
+
+        // Initialize drag and drop
+        document.querySelectorAll('.component-item').forEach(item => {
+            item.addEventListener('dragstart', function(e) {
+                e.dataTransfer.setData('text/plain', this.getAttribute('data-type'));
+                e.dataTransfer.setData('component-name', this.querySelector('.component-name').textContent);
+                e.dataTransfer.setData('component-desc', this.querySelector('.component-desc').textContent);
+            });
+        });
+
+        // Canvas drop zone
+        const flowCanvas = document.querySelector('.flow-canvas');
+        flowCanvas.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            this.style.backgroundColor = 'rgba(37, 211, 102, 0.05)';
+        });
+
+        flowCanvas.addEventListener('dragleave', function() {
+            this.style.backgroundColor = '#f8fafc';
+        });
+
+        flowCanvas.addEventListener('drop', function(e) {
+            e.preventDefault();
+            this.style.backgroundColor = '#f8fafc';
+            
+            const componentType = e.dataTransfer.getData('text/plain');
+            const componentName = e.dataTransfer.getData('component-name');
+            const componentDesc = e.dataTransfer.getData('component-desc');
+            
+            addFlowNode(componentType, componentName, componentDesc);
+        });
+
+        // Add flow node function
+        function addFlowNode(type, name, description) {
+            const nodesContainer = document.getElementById('flow-nodes');
+            const emptyState = document.getElementById('empty-state');
+            
+            // Hide empty state
+            emptyState.style.display = 'none';
+            
+            // Create node ID
+            const nodeId = `node_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            
+            // Create node element
+            const nodeElement = document.createElement('div');
+            nodeElement.className = 'flow-node';
+            nodeElement.id = nodeId;
+            nodeElement.setAttribute('data-node-type', type);
+            
+            // Get icon based on type
+            const icon = getNodeIcon(type);
+            
+            nodeElement.innerHTML = `
+                <div class="node-header">
+                    <div class="node-title">
+                        ${icon}
+                        ${name}
+                    </div>
+                    <div class="node-actions">
+                        <button class="node-action-btn" onclick="editNode('${nodeId}')">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="node-action-btn" onclick="deleteNode('${nodeId}')">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                        <button class="node-action-btn" onclick="duplicateNode('${nodeId}')">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="node-content">
+                    ${description}
+                </div>
+                <div class="node-connector" onclick="connectNode('${nodeId}')">
+                    <i class="fas fa-plus"></i>
+                </div>
+            `;
+            
+            // Add click event to select node
+            nodeElement.addEventListener('click', function(e) {
+                if (!e.target.closest('.node-action-btn')) {
+                    selectNode(nodeId);
+                }
+            });
+            
+            nodesContainer.appendChild(nodeElement);
+            
+            // Add to flow data
+            flowData.nodes.push({
+                id: nodeId,
+                type: type,
+                name: name,
+                description: description,
+                position: { x: 0, y: flowData.nodes.length * 120 },
+                properties: getDefaultProperties(type),
+                next: null
+            });
+            
+            // Show success notification
+            showNotification(`تم إضافة ${name} إلى التدفق`, 'success');
+            
+            // Select the new node
+            selectNode(nodeId);
+        }
+
+        // Get node icon
+        function getNodeIcon(type) {
+            const icons = {
+                'welcome': '<i class="fas fa-door-open"></i>',
+                'text': '<i class="fas fa-font"></i>',
+                'quick_replies': '<i class="fas fa-th-large"></i>',
+                'input': '<i class="fas fa-keyboard"></i>',
+                'condition': '<i class="fas fa-code-branch"></i>',
+                'database': '<i class="fas fa-search"></i>',
+                'results': '<i class="fas fa-list-alt"></i>',
+                'api': '<i class="fas fa-plug"></i>',
+                'delay': '<i class="fas fa-clock"></i>',
+                'transfer': '<i class="fas fa-user-tie"></i>'
+            };
+            return icons[type] || '<i class="fas fa-circle"></i>';
+        }
+
+        // Get default properties for node type
+        function getDefaultProperties(type) {
+            const defaults = {
+                'welcome': {
+                    text: 'مرحباً بك في مكتبنا العقاري 🏠\nكيف يمكنني مساعدتك اليوم؟',
+                    buttons: ['🔍 البحث عن عقار', '🏢 عرض عقاري', '📞 التحدث مع مسوّق']
+                },
+                'text': {
+                    message: 'أهلاً! سأساعدك في البحث عن العقار المناسب.',
+                    variables: []
+                },
+                'quick_replies': {
+                    text: 'اختر من القائمة التالية:',
+                    buttons: ['شقة', 'فيلا', 'محل تجاري']
+                },
+                'input': {
+                    question: 'ما نوع العقار الذي تبحث عنه؟',
+                    type: 'text',
+                    variable: '',
+                    errorMessage: 'الرجاء إدخال قيمة صحيحة'
+                },
+                'condition': {
+                    condition: '',
+                    trueBranch: null,
+                    falseBranch: null
+                },
+                'database': {
+                    searchCriteria: {},
+                    maxResults: 5
+                },
+                'results': {
+                    template: 'عقار #{number}: {property_type} في {location} - {price} ريال',
+                    includeImages: true
+                }
+            };
+            return defaults[type] || {};
+        }
+
+        // Select node function
+        function selectNode(nodeId) {
+            // Deselect previous node
+            if (selectedNode) {
+                document.getElementById(selectedNode).style.borderLeftColor = 'var(--primary)';
+                document.getElementById(selectedNode).style.boxShadow = '0 4px 15px rgba(0, 0, 0, 0.1)';
+            }
+            
+            // Select new node
+            selectedNode = nodeId;
+            const nodeElement = document.getElementById(nodeId);
+            nodeElement.style.borderLeftColor = 'var(--secondary)';
+            nodeElement.style.boxShadow = '0 8px 25px rgba(255, 107, 53, 0.2)';
+            
+            // Show properties panel
+            showPropertiesPanel(nodeId);
+        }
+
+        // Show properties panel for selected node
+        function showPropertiesPanel(nodeId) {
+            const node = flowData.nodes.find(n => n.id === nodeId);
+            if (!node) return;
+            
+            // Hide all properties panels
+            document.querySelectorAll('.properties-content').forEach(panel => {
+                panel.style.display = 'none';
+            });
+            
+            // Hide empty state
+            document.getElementById('empty-properties').style.display = 'none';
+            
+            // Show appropriate properties panel
+            const propertiesPanel = document.getElementById(`${node.type}-properties`);
+            if (propertiesPanel) {
+                propertiesPanel.style.display = 'block';
+                
+                // Load current properties into form
+                loadNodeProperties(node);
+            }
+        }
+
+        // Load node properties into form
+        function loadNodeProperties(node) {
+            const properties = node.properties;
+            
+            switch(node.type) {
+                case 'welcome':
+                    document.getElementById('welcome-text').value = properties.text || '';
+                    // Load buttons
+                    const welcomeButtonsContainer = document.getElementById('welcome-buttons');
+                    welcomeButtonsContainer.innerHTML = '';
+                    if (properties.buttons && properties.buttons.length > 0) {
+                        properties.buttons.forEach(button => {
+                            const buttonHtml = `
+                                <div class="quick-reply-item">
+                                    <input type="text" class="form-control" value="${button}">
+                                    <button class="node-action-btn" onclick="removeQuickReply(this)"><i class="fas fa-times"></i></button>
+                                </div>
+                            `;
+                            welcomeButtonsContainer.innerHTML += buttonHtml;
+                        });
+                    }
+                    break;
+                    
+                case 'text':
+                    document.getElementById('text-message').value = properties.message || '';
+                    break;
+                    
+                case 'quick_replies':
+                    document.getElementById('quick-replies-text').value = properties.text || '';
+                    // Load buttons
+                    const quickRepliesContainer = document.getElementById('quick-replies-buttons');
+                    quickRepliesContainer.innerHTML = '';
+                    if (properties.buttons && properties.buttons.length > 0) {
+                        properties.buttons.forEach(button => {
+                            const buttonHtml = `
+                                <div class="quick-reply-item">
+                                    <input type="text" class="form-control" value="${button}">
+                                    <button class="node-action-btn" onclick="removeQuickReply(this)"><i class="fas fa-times"></i></button>
+                                </div>
+                            `;
+                            quickRepliesContainer.innerHTML += buttonHtml;
+                        });
+                    }
+                    break;
+                    
+                case 'input':
+                    document.getElementById('input-question').value = properties.question || '';
+                    document.getElementById('input-type').value = properties.type || 'text';
+                    document.getElementById('input-variable').value = properties.variable || '';
+                    document.getElementById('input-error').value = properties.errorMessage || '';
+                    break;
+            }
+        }
+
+        // Update node properties
+        function updateNodeProperties() {
+            if (!selectedNode) return;
+            
+            const node = flowData.nodes.find(n => n.id === selectedNode);
+            if (!node) return;
+            
+            // Update properties based on form values
+            switch(node.type) {
+                case 'welcome':
+                    node.properties.text = document.getElementById('welcome-text').value;
+                    // Get buttons
+                    const welcomeButtons = [];
+                    document.querySelectorAll('#welcome-buttons .quick-reply-item input').forEach(input => {
+                        if (input.value.trim()) {
+                            welcomeButtons.push(input.value.trim());
+                        }
+                    });
+                    node.properties.buttons = welcomeButtons;
+                    break;
+                    
+                case 'text':
+                    node.properties.message = document.getElementById('text-message').value;
+                    break;
+                    
+                case 'quick_replies':
+                    node.properties.text = document.getElementById('quick-replies-text').value;
+                    // Get buttons
+                    const quickRepliesButtons = [];
+                    document.querySelectorAll('#quick-replies-buttons .quick-reply-item input').forEach(input => {
+                        if (input.value.trim()) {
+                            quickRepliesButtons.push(input.value.trim());
+                        }
+                    });
+                    node.properties.buttons = quickRepliesButtons;
+                    break;
+                    
+                case 'input':
+                    node.properties.question = document.getElementById('input-question').value;
+                    node.properties.type = document.getElementById('input-type').value;
+                    node.properties.variable = document.getElementById('input-variable').value;
+                    node.properties.errorMessage = document.getElementById('input-error').value;
+                    break;
+            }
+            
+            showNotification('تم تحديث خصائص المكون', 'success');
+        }
+
+        // Quick reply management
+        function addQuickReply(type) {
+            const containerId = type === 'welcome' ? 'welcome-buttons' : 'quick-replies-buttons';
+            const container = document.getElementById(containerId);
+            
+            const newButton = document.createElement('div');
+            newButton.className = 'quick-reply-item';
+            newButton.innerHTML = `
+                <input type="text" class="form-control" placeholder="نص الزر">
+                <button class="node-action-btn" onclick="removeQuickReply(this)"><i class="fas fa-times"></i></button>
+            `;
+            
+            container.appendChild(newButton);
+            newButton.querySelector('input').focus();
+        }
+
+        function removeQuickReply(button) {
+            button.closest('.quick-reply-item').remove();
+        }
+
+        // Node actions
+        function editNode(nodeId) {
+            selectNode(nodeId);
+        }
+
+        function deleteNode(nodeId) {
+            if (confirm('هل أنت متأكد من حذف هذا المكون؟')) {
+                // Remove from DOM
+                const nodeElement = document.getElementById(nodeId);
+                if (nodeElement) {
+                    nodeElement.remove();
+                }
+                
+                // Remove from flow data
+                flowData.nodes = flowData.nodes.filter(n => n.id !== nodeId);
+                
+                // Update connections
+                flowData.connections = flowData.connections.filter(c => 
+                    c.from !== nodeId && c.to !== nodeId
+                );
+                
+                // Clear selection
+                selectedNode = null;
+                
+                // Show empty state if no nodes
+                if (flowData.nodes.length === 0) {
+                    document.getElementById('empty-state').style.display = 'block';
+                    document.getElementById('empty-properties').style.display = 'block';
+                    document.querySelectorAll('.properties-content').forEach(panel => {
+                        panel.style.display = 'none';
+                    });
+                }
+                
+                showNotification('تم حذف المكون', 'info');
+            }
+        }
+
+        function duplicateNode(nodeId) {
+            const originalNode = flowData.nodes.find(n => n.id === nodeId);
+            if (!originalNode) return;
+            
+            // Create duplicate
+            addFlowNode(
+                originalNode.type,
+                `${originalNode.name} (نسخة)`,
+                originalNode.description
+            );
+        }
+
+        function connectNode(nodeId) {
+            // This would implement connection logic between nodes
+            alert('وظيفة الاتصال بين العقد قيد التطوير');
+        }
+
+        // Save flow function
+        function saveFlow() {
+            // In a real app, this would send to backend
+            const flowJSON = JSON.stringify(flowData, null, 2);
+            localStorage.setItem('realEstateBotFlow', flowJSON);
+            
+            showNotification('تم حفظ التدفق بنجاح', 'success');
+            
+            // Update JSON viewer
+            document.getElementById('json-output').textContent = flowJSON;
+        }
+
+        // Export flow function
+        function exportFlow() {
+            const flowJSON = JSON.stringify(flowData, null, 2);
+            
+            // Show in export tab
+            document.getElementById('json-output').textContent = flowJSON;
+            
+            // Switch to export tab
+            switchTab('export');
+            
+            showNotification('تم تصدير التدفق', 'success');
+        }
+
+        // Copy JSON to clipboard
+        function copyJSON() {
+            const jsonText = document.getElementById('json-output').textContent;
+            navigator.clipboard.writeText(jsonText).then(() => {
+                showNotification('تم نسخ JSON إلى الحافظة', 'success');
+            });
+        }
+
+        // Download JSON file
+        function downloadJSON() {
+            const flowJSON = JSON.stringify(flowData, null, 2);
+            const blob = new Blob([flowJSON], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'bot-flow.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // Test flow function
+        function testFlow() {
+            switchTab('test');
+            
+            // Clear test conversation
+            document.getElementById('test-conversation').innerHTML = '';
+            
+            // Add welcome message
+            const welcomeNode = flowData.nodes.find(n => n.type === 'welcome');
+            if (welcomeNode) {
+                addTestMessage(welcomeNode.properties.text, 'bot');
+            } else {
+                addTestMessage('مرحباً! كيف يمكنني مساعدتك؟', 'bot');
+            }
+            
+            showNotification('بدأ اختبار التدفق', 'info');
+        }
+
+        // Tab switching
+        document.querySelectorAll('.canvas-tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                const tabId = this.getAttribute('data-tab');
+                switchTab(tabId);
+            });
+        });
+
+        function switchTab(tabId) {
+            // Update tabs
+            document.querySelectorAll('.canvas-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelector(`.canvas-tab[data-tab="${tabId}"]`).classList.add('active');
+            
+            // Update content
+            document.querySelectorAll('.canvas-content').forEach(content => {
+                content.style.display = 'none';
+            });
+            document.getElementById(`${tabId}-tab`).style.display = 'block';
+        }
+
+        // Test conversation functions
+        function sendTestMessage() {
+            const input = document.getElementById('test-message-input');
+            const message = input.value.trim();
+            
+            if (message) {
+                addTestMessage(message, 'user');
+                input.value = '';
+                
+                // Simulate bot response
+                setTimeout(() => {
+                    const response = generateTestResponse(message);
+                    addTestMessage(response, 'bot');
+                }, 1000);
+            }
+        }
+
+        function addTestMessage(text, sender) {
+            const conversation = document.getElementById('test-conversation');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = sender === 'user' ? 'user-message' : 'bot-message';
+            messageDiv.style.cssText = sender === 'user' 
+                ? 'background: #e3f2fd; color: #1e293b; padding: 12px 16px; border-radius: 18px 18px 0 18px; margin: 10px 0 10px auto; max-width: 80%; border: 1px solid #bfdbfe;'
+                : 'background: white; color: #1e293b; padding: 12px 16px; border-radius: 18px 18px 18px 0; margin: 10px auto 10px 0; max-width: 80%; border: 1px solid var(--border); box-shadow: 0 2px 8px rgba(0,0,0,0.1);';
+            messageDiv.textContent = text;
+            conversation.appendChild(messageDiv);
+            conversation.scrollTop = conversation.scrollHeight;
+        }
+
+        function generateTestResponse(message) {
+            // Simple response logic based on flow nodes
+            const lowerMessage = message.toLowerCase();
+            
+            if (lowerMessage.includes('بحث') || lowerMessage.includes('عقار')) {
+                const searchNode = flowData.nodes.find(n => n.type === 'input' && n.properties.question);
+                return searchNode ? searchNode.properties.question : 'ما نوع العقار الذي تبحث عنه؟';
+            } else if (lowerMessage.includes('شقة') || lowerMessage.includes('فيلا')) {
+                return 'في أي مدينة تفضل أن يكون العقار؟';
+            } else if (lowerMessage.includes('الرياض') || lowerMessage.includes('جدة')) {
+                return 'ما هو الحي المفضل لديك؟';
+            } else if (lowerMessage.includes('سعر') || lowerMessage.includes('ميزانية')) {
+                return 'ما الميزانية المتوقعة؟';
+            } else {
+                return 'شكراً على معلوماتك! جاري البحث عن العقارات المطابقة...';
+            }
+        }
+
+        function runTestScenario(scenario) {
+            let userMessage = '';
+            
+            switch(scenario) {
+                case 'search':
+                    userMessage = 'أبحث عن شقة';
+                    break;
+                case 'property_listing':
+                    userMessage = 'عندي فيلا للبيع';
+                    break;
+                case 'free_text':
+                    userMessage = 'أريد شقة في الرياض حي اليرموك مساحة 150 متر بميزانية 600 ألف';
+                    break;
+            }
+            
+            document.getElementById('test-message-input').value = userMessage;
+            sendTestMessage();
+        }
+
+        // Sample flow creation
+        function addSampleFlow() {
+            // Add welcome node
+            addFlowNode('welcome', 'رسالة الترحيب', 'أول رسالة يراها العميل');
+            
+            // Add input node for property type
+            setTimeout(() => {
+                addFlowNode('input', 'سؤال نوع العقار', 'طلب نوع العقار من العميل');
+            }, 300);
+            
+            // Add quick replies node
+            setTimeout(() => {
+                addFlowNode('quick_replies', 'خيارات المدن', 'عرض قائمة المدن للاختيار');
+            }, 600);
+            
+            // Add database search node
+            setTimeout(() => {
+                addFlowNode('database', 'بحث في قاعدة البيانات', 'البحث عن عقارات مطابقة');
+            }, 900);
+            
+            // Add results node
+            setTimeout(() => {
+                addFlowNode('results', 'عرض النتائج', 'إظهار العقارات المطابقة للعميل');
+            }, 1200);
+            
+            showNotification('تم إنشاء تدفق نموذجي', 'success');
+        }
+
+        // Helper function to show notifications
+        function showNotification(message, type) {
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                left: 20px;
+                background: ${type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : type === 'info' ? '#3b82f6' : '#8b5cf6'};
+                color: white;
+                padding: 15px 25px;
+                border-radius: var(--radius);
+                box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+                z-index: 1000;
+                animation: slideIn 0.3s ease;
+                display: flex;
+                align-items: center;
+                gap: 12px;
+            `;
+            
+            const icon = type === 'success' ? 'fa-check-circle' : 
+                        type === 'error' ? 'fa-exclamation-circle' : 
+                        type === 'info' ? 'fa-info-circle' : 'fa-bell';
+            
+            notification.innerHTML = `
+                <i class="fas ${icon}"></i>
+                <span>${message}</span>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // Remove after 3 seconds
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => {
+                    notification.remove();
+                }, 300);
+            }, 3000);
+        }
+
+        // Load saved flow on startup
+        window.onload = function() {
+            const savedFlow = localStorage.getItem('realEstateBotFlow');
+            if (savedFlow) {
+                try {
+                    flowData = JSON.parse(savedFlow);
+                    // Recreate nodes from saved data
+                    flowData.nodes.forEach(node => {
+                        recreateNode(node);
+                    });
+                    
+                    if (flowData.nodes.length > 0) {
+                        document.getElementById('empty-state').style.display = 'none';
+                    }
+                    
+                    // Update JSON viewer
+                    document.getElementById('json-output').textContent = savedFlow;
+                } catch (e) {
+                    console.error('Error loading saved flow:', e);
+                }
+            }
+        };
+
+        function recreateNode(nodeData) {
+            const nodesContainer = document.getElementById('flow-nodes');
+            const emptyState = document.getElementById('empty-state');
+            
+            // Hide empty state
+            emptyState.style.display = 'none';
+            
+            // Create node element
+            const nodeElement = document.createElement('div');
+            nodeElement.className = 'flow-node';
+            nodeElement.id = nodeData.id;
+            nodeElement.setAttribute('data-node-type', nodeData.type);
+            
+            // Get icon based on type
+            const icon = getNodeIcon(nodeData.type);
+            
+            nodeElement.innerHTML = `
+                <div class="node-header">
+                    <div class="node-title">
+                        ${icon}
+                        ${nodeData.name}
+                    </div>
+                    <div class="node-actions">
+                        <button class="node-action-btn" onclick="editNode('${nodeData.id}')">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="node-action-btn" onclick="deleteNode('${nodeData.id}')">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                        <button class="node-action-btn" onclick="duplicateNode('${nodeData.id}')">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="node-content">
+                    ${nodeData.description}
+                </div>
+                <div class="node-connector" onclick="connectNode('${nodeData.id}')">
+                    <i class="fas fa-plus"></i>
+                </div>
+            `;
+            
+            // Add click event to select node
+            nodeElement.addEventListener('click', function(e) {
+                if (!e.target.closest('.node-action-btn')) {
+                    selectNode(nodeData.id);
+                }
+            });
+            
+            nodesContainer.appendChild(nodeElement);
+        }
+    </script>
+</body>
+</html>
