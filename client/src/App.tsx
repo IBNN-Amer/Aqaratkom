@@ -8,6 +8,7 @@ import { ThemeProvider } from "@/lib/theme";
 import { I18nProvider } from "@/lib/i18n";
 import { AppSidebar } from "@/components/app-sidebar";
 import { Header } from "@/components/header";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 import Dashboard from "@/pages/dashboard";
 import Leads from "@/pages/leads";
 import Properties from "@/pages/properties";
@@ -76,6 +77,7 @@ function App() {
           </TooltipProvider>
         </I18nProvider>
       </ThemeProvider>
+      <SpeedInsights />
     </QueryClientProvider>
   );
 }
